@@ -48,23 +48,20 @@ const SECTORS = [
   "Healthcare",
   "Industrials",
   "Consumer Staples",
-  "Materials",
   "ETF",
 ];
-
-const BIASES = ["All", "Bullish", "Bearish", "Neutral", "Volatile"];
+const BIASES = ["All", "Bullish", "Bearish", "Neutral"];
 
 export default function Home() {
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<string>("");
+  const [updatedAt, setUpdatedAt] = useState("");
   const [note, setNote] = useState("");
-
-  // filters
-  const [minPrice, setMinPrice] = useState(10);
-  const [maxPrice, setMaxPrice] = useState(1000);
-  const [minScore, setMinScore] = useState(55);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const [minPrice, setMinPrice] = useState(5);
+  const [maxPrice, setMaxPrice] = useState(2000);
+  const [minScore, setMinScore] = useState(40);
   const [sector, setSector] = useState("All");
   const [bias, setBias] = useState("All");
   const [search, setSearch] = useState("");
@@ -82,12 +79,13 @@ export default function Home() {
         bias,
         limit: "50",
       });
-      const res = await fetch(`/api/scan?${params.toString()}`);
+      const res = await fetch(`/api/scan?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setResults(data.results || []);
       setUpdatedAt(data.updatedAt || "");
       setNote(data.note || "");
+      setUsingFallback(!!data.usingFallback);
     } catch (e: any) {
       setError(e.message || "扫描失败");
     } finally {
@@ -107,7 +105,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -120,9 +117,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400">
-            {updatedAt && (
-              <span>更新: {new Date(updatedAt).toLocaleString("zh-CN")}</span>
-            )}
+            {updatedAt && <span>更新: {new Date(updatedAt).toLocaleString("zh-CN")}</span>}
             <button
               onClick={fetchScan}
               disabled={loading}
@@ -136,7 +131,12 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Filters */}
+        {usingFallback && (
+          <div className="bg-amber-950/40 border border-amber-800/60 text-amber-200 rounded-xl px-4 py-3 text-sm">
+            实时报价暂时不可用，当前使用参考价格展示。策略推荐仍有效，价格请以券商为准。
+          </div>
+        )}
+
         <section className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-5">
           <div className="flex items-center gap-2 mb-4 text-slate-300">
             <Filter className="w-4 h-4" />
@@ -178,7 +178,9 @@ export default function Home() {
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 {SECTORS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
             </label>
@@ -190,19 +192,21 @@ export default function Home() {
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 {BIASES.map((b) => (
-                  <option key={b} value={b}>{b}</option>
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
                 ))}
               </select>
             </label>
             <label className="space-y-1">
-              <span className="text-xs text-slate-400">搜索代码/名称</span>
+              <span className="text-xs text-slate-400">搜索</span>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="AAPL / NVIDIA"
+                  placeholder="AAPL"
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
@@ -210,11 +214,10 @@ export default function Home() {
           </div>
           <p className="mt-3 text-xs text-slate-500 flex items-start gap-1.5">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            基于高流动性期权标的宇宙（约 {results.length > 0 ? "80+" : "..."} 只）实时报价 + 规则评分。完整市场需付费期权数据源。
+            默认已放宽筛选。若仍为空，把「最低适合度」调到 0，「最低价格」调到 1 后点刷新。
           </p>
         </section>
 
-        {/* Status */}
         {error && (
           <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">
             扫描出错: {error}
@@ -224,17 +227,13 @@ export default function Home() {
         {loading && (
           <div className="flex items-center justify-center py-20 text-slate-400 gap-3">
             <RefreshCw className="w-6 h-6 animate-spin" />
-            正在扫描市场与生成策略建议...
+            正在扫描市场...
           </div>
         )}
 
-        {/* Results */}
         {!loading && !error && (
           <>
-            <div className="flex items-center justify-between text-sm text-slate-400">
-              <span>共 {filtered.length} 只符合条件的标的</span>
-            </div>
-
+            <div className="text-sm text-slate-400">共 {filtered.length} 只符合条件的标的</div>
             <div className="space-y-3">
               {filtered.map((r) => (
                 <div
@@ -257,13 +256,12 @@ export default function Home() {
                               : "bg-slate-700 text-slate-300"
                           }`}
                         >
-                          {r.typicalOptionsVolume} OI
+                          {r.typicalOptionsVolume}
                         </span>
                       </div>
                       <div className="text-sm text-slate-400">{r.name}</div>
                       <div className="text-xs text-slate-500">{r.sector}</div>
                     </div>
-
                     <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                       <div>
                         <div className="text-xs text-slate-500">价格</div>
@@ -299,12 +297,12 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-
                     <ChevronDown
-                      className={`w-5 h-5 text-slate-500 transition ${expanded === r.symbol ? "rotate-180" : ""}`}
+                      className={`w-5 h-5 text-slate-500 transition ${
+                        expanded === r.symbol ? "rotate-180" : ""
+                      }`}
                     />
                   </button>
-
                   {expanded === r.symbol && (
                     <div className="border-t border-slate-800 bg-slate-950/50 p-4 md:p-5 space-y-3">
                       <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
@@ -325,9 +323,7 @@ export default function Home() {
                                     ? "bg-emerald-900/50 text-emerald-300"
                                     : st.bias === "Bearish"
                                     ? "bg-red-900/50 text-red-300"
-                                    : st.bias === "Neutral"
-                                    ? "bg-amber-900/50 text-amber-300"
-                                    : "bg-purple-900/50 text-purple-300"
+                                    : "bg-amber-900/50 text-amber-300"
                                 }`}
                               >
                                 {st.bias}
@@ -346,23 +342,21 @@ export default function Home() {
                   )}
                 </div>
               ))}
-
               {filtered.length === 0 && (
-                <div className="text-center py-16 text-slate-500">
-                  没有符合当前筛选条件的标的，请放宽条件后重试。
+                <div className="text-center py-16 text-slate-500 space-y-2">
+                  <p>没有符合当前筛选条件的标的。</p>
+                  <p className="text-sm">请把「最低适合度」设为 0、「最低价格」设为 1，然后点「刷新扫描」。</p>
                 </div>
               )}
             </div>
-
             {note && (
               <p className="text-xs text-slate-600 pt-4 border-t border-slate-800">{note}</p>
             )}
           </>
         )}
       </main>
-
       <footer className="border-t border-slate-800 mt-12 py-6 text-center text-xs text-slate-600">
-        Options Scanner · 数据仅供参考，不构成投资建议 · Powered by Yahoo Finance quotes + rule engine
+        Options Scanner · 仅供参考，不构成投资建议
       </footer>
     </div>
   );
