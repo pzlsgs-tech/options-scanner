@@ -29,8 +29,8 @@ export const STRATEGY_LIBRARY: Record<StrategyType, Omit<StrategyRecommendation,
   "Covered Call": {
     bias: "Neutral",
     suitability: "已持有股票 + 高 IV + 想增强收益",
-    description: "持有正股同时卖出看涨期权，收取权利金，适合震荡或温和上涨行情。",
-    risk: "Undefined (股票下跌风险仍在)",
+    description: "持有正股同时卖出看涨期权，收取权利金，适合震荡或温和上涨行情。股票下跌风险仍在。",
+    risk: "Undefined",
     when: "已持仓、IV 较高、不预期大幅暴涨",
   },
   "Bull Call Spread": {
@@ -85,7 +85,7 @@ export const STRATEGY_LIBRARY: Record<StrategyType, Omit<StrategyRecommendation,
 };
 
 export function recommendStrategies(params: {
-  ivRankProxy: number; // 0-100 approximate
+  ivRankProxy: number;
   trend: "up" | "down" | "sideways";
   liquidityScore: number;
   price: number;
@@ -95,11 +95,6 @@ export function recommendStrategies(params: {
 
   const highIV = ivRankProxy >= 55;
   const lowIV = ivRankProxy <= 35;
-  const liquid = liquidityScore >= 70;
-
-  if (!liquid) {
-    // still return something but note lower liquidity
-  }
 
   if (highIV && trend === "sideways") {
     recs.push({ name: "Iron Condor", ...STRATEGY_LIBRARY["Iron Condor"] });
@@ -131,7 +126,6 @@ export function recommendStrategies(params: {
   }
 
   if (recs.length === 0) {
-    // default fallback
     if (trend === "up") {
       recs.push({ name: "Bull Call Spread", ...STRATEGY_LIBRARY["Bull Call Spread"] });
       recs.push({ name: "Cash-Secured Put", ...STRATEGY_LIBRARY["Cash-Secured Put"] });
@@ -143,7 +137,6 @@ export function recommendStrategies(params: {
     }
   }
 
-  // dedupe by name
   const seen = new Set<string>();
   return recs.filter((r) => {
     if (seen.has(r.name)) return false;
