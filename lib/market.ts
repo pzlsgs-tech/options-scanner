@@ -12,7 +12,7 @@ export type MarketRegime =
 
 export type MarketSnapshot = {
   regimes: MarketRegime[];
-  vixProxy: number; // from SPY daily move magnitude when real VIX unavailable
+  vixProxy: number;
   spyChange: number;
   qqqChange: number;
   spyTrend: "up" | "down" | "sideways";
@@ -28,7 +28,6 @@ export function analyzeMarket(params: {
 }): MarketSnapshot {
   const { spyChange, qqqChange } = params;
   const avgMove = (Math.abs(spyChange) + Math.abs(qqqChange)) / 2;
-  // crude VIX proxy: daily move * ~16 annualizes roughly; scale to 12-40 range
   const vixProxy = Math.min(45, Math.max(12, 15 + avgMove * 4));
 
   const spyTrend: "up" | "down" | "sideways" =
@@ -38,10 +37,15 @@ export function analyzeMarket(params: {
 
   const regimes: MarketRegime[] = [];
 
-  if (spyTrend === "up" && qqqTrend === "up") regimes.push("Bull", "Risk On");
-  else if (spyTrend === "down" && qqqTrend === "down") regimes.push("Bear", "Risk Off");
-  else if (spyChange < -1.5 || qqqChange < -2) regimes.push("Correction", "Risk Off");
-  else regimes.push("Sideways");
+  if (spyTrend === "up" && qqqTrend === "up") {
+    regimes.push("Bull", "Risk On");
+  } else if (spyTrend === "down" && qqqTrend === "down") {
+    regimes.push("Bear", "Risk Off");
+  } else if (spyChange < -1.5 || qqqChange < -2) {
+    regimes.push("Correction", "Risk Off");
+  } else {
+    regimes.push("Sideways");
+  }
 
   if (vixProxy >= 28) regimes.push("High IV");
   else if (vixProxy <= 16) regimes.push("Low IV");
@@ -62,8 +66,14 @@ export function analyzeMarket(params: {
     `偏向: ${strategyBias}`,
   ].join(" · ");
 
+  // Dedupe without Set spread (avoids downlevelIteration requirement)
+  const uniqueRegimes: MarketRegime[] = [];
+  for (let i = 0; i < regimes.length; i++) {
+    if (uniqueRegimes.indexOf(regimes[i]) === -1) uniqueRegimes.push(regimes[i]);
+  }
+
   return {
-    regimes: [...new Set(regimes)],
+    regimes: uniqueRegimes,
     vixProxy: Math.round(vixProxy),
     spyChange,
     qqqChange,
