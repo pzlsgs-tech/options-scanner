@@ -12,7 +12,6 @@ export type StrategyName =
   | "Bear Put Spread"
   | "Calendar";
 
-/** Layer 2: Strategy scores based on market */
 export function scoreStrategies(market: MarketSnapshot): { name: StrategyName; score: number; reason: string }[] {
   const { strategyBias, regimes } = market;
   const highIV = regimes.includes("High IV");
@@ -70,12 +69,11 @@ export function scoreStrategies(market: MarketSnapshot): { name: StrategyName; s
 export type UnderlyingScores = {
   fundamentalScore: number;
   technicalScore: number;
-  riskScore: number; // higher = safer
+  riskScore: number;
   total: number;
   flags: string[];
 };
 
-/** Layer 3: Underlying quality (proxy without full fundamentals API) */
 export function scoreUnderlying(params: {
   symbol: string;
   price: number;
@@ -87,7 +85,6 @@ export function scoreUnderlying(params: {
   const { price, changePercent, volume, typicalOptionsVolume, sector } = params;
   const flags: string[] = [];
 
-  // Fundamental proxy: large liquid names score higher
   let fundamentalScore = 50;
   if (typicalOptionsVolume === "Very High") fundamentalScore = 88;
   else if (typicalOptionsVolume === "High") fundamentalScore = 75;
@@ -98,16 +95,14 @@ export function scoreUnderlying(params: {
   }
   fundamentalScore = Math.min(100, fundamentalScore);
 
-  // Technical proxy from daily change
   let technicalScore = 55;
-  if (changePercent > 0 && changePercent < 3) technicalScore = 78; // healthy up
-  else if (changePercent >= 3) technicalScore = 65; // extended
+  if (changePercent > 0 && changePercent < 3) technicalScore = 78;
+  else if (changePercent >= 3) technicalScore = 65;
   else if (changePercent > -2) technicalScore = 60;
   else technicalScore = 40;
   if (volume > 5_000_000) technicalScore += 5;
   technicalScore = Math.min(100, technicalScore);
 
-  // Risk: avoid extreme moves as proxy for event risk
   let riskScore = 70;
   if (Math.abs(changePercent) > 5) {
     riskScore = 40;
@@ -130,13 +125,12 @@ export type OptionScores = {
   deltaIdeal: boolean;
   ivRankProxy: number;
   liquidityScore: number;
-  premiumQuality: number; // Premium ÷ risk proxy
+  premiumQuality: number;
   yieldProxy: number;
   total: number;
   notes: string[];
 };
 
-/** Layer 4: Option suitability (proxies where real chain data unavailable) */
 export function scoreOptionLayer(params: {
   ivRankProxy: number;
   liquidityScore: number;
@@ -144,19 +138,16 @@ export function scoreOptionLayer(params: {
   price: number;
   typicalOptionsVolume: string;
 }): OptionScores {
-  const { ivRankProxy, liquidityScore, volatilityProxy, price, typicalOptionsVolume } = params;
+  const { ivRankProxy, liquidityScore, price, typicalOptionsVolume } = params;
   const notes: string[] = [];
 
-  // Without live chain: assume mid-term CSP target is ideal when IV high & liquid
-  const dteIdeal = true; // UI will note user should pick 30-45 DTE
-  const deltaIdeal = ivRankProxy >= 50; // prefer selling premium when IV elevated
+  const dteIdeal = true;
+  const deltaIdeal = ivRankProxy >= 50;
 
   if (ivRankProxy >= 60) notes.push("IV Rank代理≥60，适合卖权利金");
   else if (ivRankProxy < 35) notes.push("IV偏低，慎卖裸权利金");
-
   if (liquidityScore < 60) notes.push("期权流动性一般");
 
-  // Premium quality: high IV + high liquidity + not extreme single-name risk
   const premiumQuality = Math.round(
     Math.min(
       100,
@@ -166,7 +157,6 @@ export function scoreOptionLayer(params: {
     )
   );
 
-  // Yield proxy: higher IV → higher expected premium/strike
   const yieldProxy = Math.round(Math.min(100, ivRankProxy * 0.7 + (price > 30 ? 15 : 5)));
 
   const total = Math.round(
@@ -188,7 +178,6 @@ export function scoreOptionLayer(params: {
   };
 }
 
-/** Layer 5: Portfolio constraints */
 export type PortfolioCheck = {
   sectorWarnings: string[];
   themeCounts: Record<string, number>;
@@ -229,71 +218,132 @@ export function buildPortfolioCheck(heldSymbols: string[]): PortfolioCheck {
   };
 }
 
-/** Layer 6: Roll opportunity score (for existing short puts) */
 export type RollScore = {
   score: number;
-  stars: number; // 1-5
+  stars: number;
   factors: { label: string; value: string; weight: string }[];
-  recommendation: "Roll" | "观察" | "不处理";
+  recommendation: "Roll" | "观察" | "不处理" | "获利了结";
+  detail: {
+    strike: number;
+    expiry: string;
+    dte: number;
+    entryPremium: number;
+    currentPremium: number;
+    unrealizedPnl: number;
+    profitPctOfCredit: number;
+  };
 };
 
+/** Layer 6: Roll using real short-put IBKR fields */
 export function scoreRollOpportunity(params: {
   symbol: string;
+  strike: number;
+  expiry: string;
+  dte: number;
+  entryPremium: number; // average_price
+  currentPremium: number; // market_price
   unrealizedPnl: number;
   marketValue: number;
-  deltaProxy?: number; // negative for short put
-  daysToExpiryApprox?: number;
+  position: number;
 }): RollScore {
-  const { unrealizedPnl, marketValue, deltaProxy = -0.4, daysToExpiryApprox = 90 } = params;
+  const {
+    strike,
+    expiry,
+    dte,
+    entryPremium,
+    currentPremium,
+    unrealizedPnl,
+    position,
+  } = params;
 
-  // If short put is profitable (positive pnl for short), less urgency to roll
-  // If losing (negative for short means option more expensive), may want to roll down
-  const pnlRatio = marketValue !== 0 ? unrealizedPnl / Math.abs(marketValue) : 0;
+  const creditReceived = Math.abs(entryPremium) * 100 * Math.abs(position);
+  const profitPct = creditReceived > 0 ? unrealizedPnl / creditReceived : 0;
+  const remainingRatio = entryPremium > 0 ? currentPremium / entryPremium : 1;
 
-  let score = 50;
+  let score = 40;
   const factors: RollScore["factors"] = [];
 
-  // Credit potential: if still decent time value / not deep ITM
-  if (pnlRatio > 0.3) {
-    score += 15;
-    factors.push({ label: "浮盈", value: "较高，可考虑获利了结或Roll收Credit", weight: "★★★★" });
-  } else if (pnlRatio < -0.2) {
-    score += 10;
-    factors.push({ label: "浮亏", value: "可评估降Strike Roll", weight: "★★★★★" });
+  // 50% profit target common rule
+  if (profitPct >= 0.5) {
+    score += 30;
+    factors.push({
+      label: "浮盈/权利金",
+      value: `${(profitPct * 100).toFixed(0)}% ≥50%，可考虑获利了结或Roll收Credit`,
+      weight: "★★★★★",
+    });
+  } else if (profitPct >= 0.3) {
+    score += 18;
+    factors.push({
+      label: "浮盈/权利金",
+      value: `${(profitPct * 100).toFixed(0)}%，接近50%目标`,
+      weight: "★★★★",
+    });
+  } else if (profitPct < 0) {
+    score += 12;
+    factors.push({
+      label: "浮亏",
+      value: `$${(unrealizedPnl).toFixed(0)}，评估是否降Strike Roll`,
+      weight: "★★★★★",
+    });
   } else {
-    factors.push({ label: "盈亏", value: "中性", weight: "★★★" });
+    factors.push({
+      label: "浮盈/权利金",
+      value: `${(profitPct * 100).toFixed(0)}%`,
+      weight: "★★★",
+    });
   }
 
-  // Delta: short put delta closer to -0.5 means higher assignment risk
-  const absDelta = Math.abs(deltaProxy);
-  if (absDelta >= 0.45) {
+  factors.push({
+    label: "权利金剩余",
+    value: `入场 ${entryPremium.toFixed(2)} → 现价 ${currentPremium.toFixed(2)} (${(remainingRatio * 100).toFixed(0)}%)`,
+    weight: "★★★★",
+  });
+
+  if (dte < 30) {
     score += 20;
-    factors.push({ label: "Delta", value: `≈${deltaProxy.toFixed(2)} 偏高，优先考虑降Strike`, weight: "★★★★★" });
-  } else if (absDelta >= 0.3) {
+    factors.push({ label: "DTE", value: `${dte}天 <30，优先Roll延长期限`, weight: "★★★★" });
+  } else if (dte < 60) {
     score += 10;
-    factors.push({ label: "Delta", value: `≈${deltaProxy.toFixed(2)}`, weight: "★★★★" });
+    factors.push({ label: "DTE", value: `${dte}天`, weight: "★★★" });
   } else {
-    factors.push({ label: "Delta", value: "风险可控", weight: "★★★" });
+    score += 5;
+    factors.push({ label: "DTE", value: `${dte}天仍较远`, weight: "★★★" });
   }
 
-  if (daysToExpiryApprox < 30) {
-    score += 15;
-    factors.push({ label: "DTE", value: "<30天，适合Roll延长期限", weight: "★★★★" });
-  } else if (daysToExpiryApprox > 90) {
-    score -= 5;
-    factors.push({ label: "DTE", value: "仍较远，可不急", weight: "★★★" });
-  }
+  factors.push({
+    label: "Strike",
+    value: `${strike} · 到期 ${expiry}`,
+    weight: "★★★★★",
+  });
 
+  // Prefer manage when >50% profit
   score = Math.max(0, Math.min(100, score));
   const stars = score >= 85 ? 5 : score >= 70 ? 4 : score >= 55 ? 3 : score >= 40 ? 2 : 1;
-  const recommendation = score >= 75 ? "Roll" : score >= 50 ? "观察" : "不处理";
 
-  return { score, stars, factors, recommendation };
+  let recommendation: RollScore["recommendation"] = "观察";
+  if (profitPct >= 0.5) recommendation = "获利了结";
+  else if (score >= 75) recommendation = "Roll";
+  else if (score < 45) recommendation = "不处理";
+
+  return {
+    score,
+    stars,
+    factors,
+    recommendation,
+    detail: {
+      strike,
+      expiry,
+      dte,
+      entryPremium,
+      currentPremium,
+      unrealizedPnl,
+      profitPctOfCredit: profitPct,
+    },
+  };
 }
 
-/** Layer 7: Final AI composite score */
 export function finalScore(params: {
-  marketWeight: number; // how well this fits today's market strategy
+  marketWeight: number;
   stockScore: number;
   optionScore: number;
   portfolioOk: boolean;
@@ -307,8 +357,6 @@ export function finalScore(params: {
   const premium = params.premiumQuality;
   const roll = params.rollScore ?? 50;
 
-  // Weights from user spec: Market 20, Strategy embedded in market, Stock 20, Option 20, Portfolio 10, Roll 10
-  // + Premium quality folded into option/premium
   const total = Math.round(
     market * 0.2 +
       stock * 0.2 +
@@ -320,13 +368,6 @@ export function finalScore(params: {
 
   return {
     total: Math.min(100, total),
-    breakdown: {
-      market,
-      stock,
-      option,
-      premium,
-      portfolio,
-      roll,
-    },
+    breakdown: { market, stock, option, premium, portfolio, roll },
   };
 }
