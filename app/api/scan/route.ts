@@ -11,16 +11,25 @@ import {
   finalScore,
 } from "@/lib/layers";
 import { getThemes } from "@/lib/themes";
+import {
+  IBKR_SNAPSHOT,
+  getHeldSymbols,
+  getShortPuts,
+  getCoveredCalls,
+  getStockPositions,
+  portfolioRiskFlags,
+} from "@/lib/ibkr-snapshot";
 
 const FALLBACK_PRICES: Record<string, number> = {
-  AAPL: 210, MSFT: 430, NVDA: 125, TSLA: 250, AMZN: 195, META: 530,
+  AAPL: 210, MSFT: 430, NVDA: 199, TSLA: 250, AMZN: 195, META: 530,
   GOOGL: 180, AMD: 145, SPY: 560, QQQ: 490, IWM: 220, AVGO: 250,
   AMAT: 180, MU: 110, INTC: 25, TSM: 180, PLTR: 40, NFLX: 700,
   JPM: 220, BAC: 40, GS: 500, XOM: 115, CVX: 155, COST: 900,
-  WMT: 95, HD: 380, MCD: 290, DIS: 100, BA: 180, UNH: 520,
+  WMT: 95, HD: 380, MCD: 271, DIS: 100, BA: 180, UNH: 520,
   LLY: 800, PFE: 28, COIN: 250, MSTR: 350, SOFI: 15, HOOD: 40,
   BABA: 90, UBER: 75, CRWD: 350, SHOP: 100, PYPL: 75, V: 290,
-  MA: 520, IBKR: 150, F: 11, XLE: 90, XLF: 45, XLK: 230, GLD: 240, TLT: 90,
+  MA: 520, IBKR: 88, F: 11, XLE: 90, XLF: 45, XLK: 230, GLD: 240, TLT: 90,
+  COHR: 95, CRDO: 140, GDX: 74,
 };
 
 async function fetchOneChart(symbol: string): Promise<Quote | null> {
@@ -28,7 +37,7 @@ async function fetchOneChart(symbol: string): Promise<Quote | null> {
   try {
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         Accept: "application/json",
       },
       next: { revalidate: 120 },
@@ -74,14 +83,13 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const minScore = Number(searchParams.get("minScore") || "0");
   const sector = searchParams.get("sector") || "All";
-  const heldParam = searchParams.get("held") || ""; // comma symbols user holds for portfolio layer
-  const heldSymbols = heldParam ? heldParam.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) : [];
 
-  // Default held from user's known portfolio if empty
-  const effectiveHeld =
-    heldSymbols.length > 0
-      ? heldSymbols
-      : ["AMAT", "COHR", "CRDO", "GDX", "MCD", "NVDA", "IBKR", "VWRA"];
+  const snapshot = IBKR_SNAPSHOT;
+  const effectiveHeld = getHeldSymbols(snapshot);
+  const shortPuts = getShortPuts(snapshot);
+  const coveredCalls = getCoveredCalls(snapshot);
+  const stocks = getStockPositions(snapshot);
+  const risk = portfolioRiskFlags(snapshot);
 
   const symbols = UNIVERSE.map((s) => s.symbol);
   const { quotes, liveCount } = await fetchQuotes(symbols);
@@ -94,11 +102,23 @@ export async function GET(req: NextRequest) {
   });
   const strategyScores = scoreStrategies(market);
   const topStrategy = strategyScores[0];
-
   const portfolio = buildPortfolioCheck(effectiveHeld);
 
-  // Known short puts for roll layer (user's AMAT/COHR/CRDO style positions)
-  const rollCandidates = ["AMAT", "COHR", "CRDO"].filter((s) => effectiveHeld.includes(s));
+  // Roll map by underlying
+  const rollByUnderlying: Record<string, ReturnType<typeof scoreRollOpportunity>> = {};
+  for (const sp of shortPuts) {
+    rollByUnderlying[sp.underlying] = scoreRollOpportunity({
+      symbol: sp.underlying,
+      strike: sp.strike || 0,
+      expiry: sp.expiry || "",
+      dte: sp.dte,
+      entryPremium: sp.averagePrice,
+      currentPremium: sp.marketPrice,
+      unrealizedPnl: sp.unrealizedPnl,
+      marketValue: sp.marketValue,
+      position: sp.position,
+    });
+  }
 
   let results = UNIVERSE.map((meta) => {
     const q = quotes[meta.symbol] || {
@@ -127,7 +147,6 @@ export async function GET(req: NextRequest) {
     const themes = getThemes(meta.symbol);
     const portfolioOk = portfolio.canAddTheme(themes);
 
-    // Market fit: higher if top strategies are sell-premium and this name is liquid high IV
     let marketFit = 50;
     if (market.strategyBias === "sell_premium" && scored.ivRankProxy >= 50 && scored.liquidityScore >= 70) {
       marketFit = 90;
@@ -139,16 +158,7 @@ export async function GET(req: NextRequest) {
       marketFit = 60 + (scored.liquidityScore > 80 ? 15 : 0);
     }
 
-    const isRollCandidate = rollCandidates.includes(meta.symbol);
-    const roll = isRollCandidate
-      ? scoreRollOpportunity({
-          symbol: meta.symbol,
-          unrealizedPnl: 1500, // placeholder; real PnL from IBKR when integrated
-          marketValue: -8000,
-          deltaProxy: -0.45,
-          daysToExpiryApprox: 110,
-        })
-      : undefined;
+    const roll = rollByUnderlying[meta.symbol];
 
     const ai = finalScore({
       marketWeight: marketFit,
@@ -158,6 +168,16 @@ export async function GET(req: NextRequest) {
       premiumQuality: optionLayer.premiumQuality,
       rollScore: roll?.score,
     });
+
+    let recommendedAction = "观望";
+    if (roll) {
+      if (roll.recommendation === "获利了结") recommendedAction = `今天: 考虑平仓 ${meta.symbol} Put（已赚 ${(roll.detail.profitPctOfCredit * 100).toFixed(0)}%）`;
+      else if (roll.recommendation === "Roll") recommendedAction = `今天: Roll ${meta.symbol}`;
+      else if (roll.recommendation === "观察") recommendedAction = `观察 ${meta.symbol}`;
+      else recommendedAction = `不处理 ${meta.symbol}`;
+    } else if (topStrategy.score >= 70 && portfolioOk && ai.total >= 65) {
+      recommendedAction = `可考虑 ${topStrategy.name}`;
+    }
 
     return {
       ...scored,
@@ -169,21 +189,11 @@ export async function GET(req: NextRequest) {
       roll,
       aiScore: ai.total,
       aiBreakdown: ai.breakdown,
-      recommendedAction: roll
-        ? roll.recommendation === "Roll"
-          ? `今天: Roll ${meta.symbol}`
-          : roll.recommendation === "观察"
-          ? `观察 ${meta.symbol}`
-          : `不处理 ${meta.symbol}`
-        : topStrategy.score >= 70 && portfolioOk && ai.total >= 65
-        ? `可考虑 ${topStrategy.name}`
-        : "观望",
+      recommendedAction,
     };
   });
 
-  if (sector !== "All") {
-    results = results.filter((r) => r.sector === sector);
-  }
+  if (sector !== "All") results = results.filter((r) => r.sector === sector);
   results = results.filter((r) => r.aiScore >= minScore);
   results.sort((a, b) => b.aiScore - a.aiScore);
 
@@ -194,26 +204,61 @@ export async function GET(req: NextRequest) {
     market,
     strategyScores,
     topStrategy,
+    ibkr: {
+      snapshotAt: snapshot.updatedAt,
+      source: snapshot.source,
+      balances: snapshot.balances,
+      sectors: snapshot.sectors,
+      stocks: stocks.map((s) => ({
+        symbol: s.symbol,
+        qty: s.position,
+        avg: s.averagePrice,
+        price: s.marketPrice,
+        value: s.marketValue,
+        pnl: s.unrealizedPnl,
+        dailyPnl: s.dailyPnl,
+      })),
+      shortPuts: shortPuts.map((p) => ({
+        underlying: p.underlying,
+        description: p.description,
+        strike: p.strike,
+        expiry: p.expiry,
+        dte: p.dte,
+        entryPremium: p.averagePrice,
+        currentPremium: p.marketPrice,
+        unrealizedPnl: p.unrealizedPnl,
+        dailyPnl: p.dailyPnl,
+        profitPctOfCredit: p.profitPctOfCredit,
+        marketValue: p.marketValue,
+      })),
+      coveredCalls: coveredCalls.map((c) => ({
+        underlying: c.underlying || c.symbol,
+        description: c.description,
+        strike: c.strike,
+        expiry: c.expiry,
+        entryPremium: c.averagePrice,
+        currentPremium: c.marketPrice,
+        unrealizedPnl: c.unrealizedPnl,
+      })),
+      riskFlags: risk.flags,
+      limits: risk.limits,
+    },
     portfolio: {
       held: effectiveHeld,
       themeCounts: portfolio.themeCounts,
-      warnings: portfolio.sectorWarnings,
+      warnings: [...portfolio.sectorWarnings, ...risk.flags],
       limits: portfolio.limits,
     },
     optionCriteria: {
       dte: "30–45天（可至60）",
       delta: "0.25–0.35（卖Put）",
       ivRank: ">60 优先",
-      ivPercentile: ">70 优先",
       oi: ">500",
       volume: ">100",
       bidAsk: "<5%",
       popOtm: ">65%",
     },
     results,
-    note:
-      liveCount === 0
-        ? "实时报价暂不可用，使用参考价。IV Rank/Delta/OI 等为规则代理，生产环境请接真实期权链。"
-        : `六层扫描已启用。实时报价 ${liveCount}/${symbols.length}。IV Rank/Delta 等仍为代理指标。`,
+    note: `第5/6层已接入 IBKR 快照（${snapshot.updatedAt}）。NLV≈$${snapshot.balances.netLiquidation.toFixed(0)} · 现金${snapshot.balances.cashPct.toFixed(0)}%。空头Put: ${shortPuts.map((p) => p.underlying).join(", ") || "无"}。`,
   });
 }
