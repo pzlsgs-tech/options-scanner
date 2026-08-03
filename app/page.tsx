@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
-  Search, RefreshCw, Zap, Layers, Target, Briefcase, RefreshCcw, Brain, ChevronDown, BookOpen,
+  Search, RefreshCw, Zap, Layers, Target, Briefcase, RefreshCcw, Brain, BookOpen,
 } from "lucide-react";
 
 type StrategyScore = { name: string; score: number; reason: string };
@@ -34,9 +34,12 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
+const AUTO_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
+
 export default function Home() {
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState("");
   const [note, setNote] = useState("");
@@ -51,12 +54,16 @@ export default function Home() {
   const [tab, setTab] = useState<TabId>("rules");
   const [minScore, setMinScore] = useState(50);
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const hasData = useRef(false);
 
-  const fetchScan = useCallback(async () => {
-    setLoading(true); setError(null);
+  const fetchScan = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent && hasData.current;
+    if (silent) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/scan?minScore=${minScore}`);
+      const res = await fetch(`/api/scan?minScore=${minScore}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setResults(data.results || []);
@@ -70,14 +77,28 @@ export default function Home() {
       setIbkr(data.ibkr);
       setPlaybook(data.playbook);
       setOptionCriteria(data.optionCriteria);
+      hasData.current = true;
     } catch (e: any) {
       setError(e.message || "扫描失败");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [minScore]);
 
-  useEffect(() => { fetchScan(); }, [fetchScan]);
+  // Initial load + when minScore changes
+  useEffect(() => {
+    fetchScan();
+  }, [fetchScan]);
+
+  // Auto refresh every 2 minutes when enabled
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(() => {
+      fetchScan({ silent: true });
+    }, AUTO_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [autoRefresh, fetchScan]);
 
   const filtered = results.filter((r) => {
     if (!search) return true;
@@ -99,10 +120,29 @@ export default function Home() {
               <p className="text-xs text-slate-400">六层筛选 · CSP Playbook · IBKR</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-sm text-slate-400">
-            {updatedAt && <span>{new Date(updatedAt).toLocaleString("zh-CN")}</span>}
-            <button onClick={fetchScan} disabled={loading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50">
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> 刷新
+          <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
+            {updatedAt && (
+              <span title="行情扫描时间">
+                更新 {new Date(updatedAt).toLocaleString("zh-CN")}
+                {refreshing && <span className="ml-1 text-sky-400">刷新中…</span>}
+              </span>
+            )}
+            <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="rounded border-slate-600"
+              />
+              <span className={autoRefresh ? "text-sky-300" : "text-slate-500"}>自动刷新 2分钟</span>
+            </label>
+            <button
+              onClick={() => fetchScan({ silent: hasData.current })}
+              disabled={loading || refreshing}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading || refreshing ? "animate-spin" : ""}`} />
+              刷新
             </button>
           </div>
         </div>
@@ -124,13 +164,17 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {usingFallback && (
           <div className="bg-amber-950/40 border border-amber-800/60 text-amber-200 rounded-xl px-4 py-3 text-sm">
-            行情报价使用代理/缓存；持仓数据来自 IBKR 快照；筛选原则已写入评分。
+            行情可能使用缓存价；IBKR 持仓为快照（需对话中「更新持仓」或改代码刷新）。点击「刷新」会重新拉行情与评分。
           </div>
         )}
         {error && <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">错误: {error}</div>}
-        {loading && <div className="flex justify-center py-20 text-slate-400 gap-3"><RefreshCw className="w-6 h-6 animate-spin" />加载中...</div>}
+        {loading && !hasData.current && (
+          <div className="flex justify-center py-20 text-slate-400 gap-3">
+            <RefreshCw className="w-6 h-6 animate-spin" /> 加载中...
+          </div>
+        )}
 
-        {!loading && !error && (
+        {(!loading || hasData.current) && !error && (
           <>
             {tab === "market" && market && (
               <section className="space-y-4">
@@ -167,7 +211,7 @@ export default function Home() {
 
             {tab === "scan" && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">第三/四层：标的与期权（含池分层）</h2>
+                <h2 className="text-lg font-semibold">第三/四层：标的与期权</h2>
                 <div className="flex gap-3">
                   <input type="number" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
                   <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索" className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
@@ -187,7 +231,8 @@ export default function Home() {
 
             {tab === "portfolio" && ibkr && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">第五层：组合风险（IBKR）</h2>
+                <h2 className="text-lg font-semibold">第五层：组合风险（IBKR 快照）</h2>
+                <p className="text-xs text-slate-500">快照时间：{ibkr.snapshotAt ? new Date(ibkr.snapshotAt).toLocaleString("zh-CN") : "—"} · 非每次点击刷新都会变，需对话中更新持仓</p>
                 <div className="grid sm:grid-cols-4 gap-3">
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">NLV</div>
@@ -243,7 +288,7 @@ export default function Home() {
 
             {tab === "ai" && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">第七层：AI 综合评分（含 Playbook 25%）</h2>
+                <h2 className="text-lg font-semibold">第七层：AI 综合评分</h2>
                 {filtered.slice(0, 25).map((r) => (
                   <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center gap-4">
                     <div className={`text-2xl font-bold w-14 text-center ${r.aiScore >= 80 ? "text-emerald-400" : r.aiScore >= 65 ? "text-sky-400" : "text-slate-400"}`}>{r.aiScore}</div>
@@ -256,7 +301,7 @@ export default function Home() {
 
             {tab === "rules" && playbook && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2"><BookOpen className="w-5 h-5 text-sky-400" />CSP 筛选原则（Playbook）</h2>
+                <h2 className="text-lg font-semibold flex items-center gap-2"><BookOpen className="w-5 h-5 text-sky-400" />CSP 筛选原则</h2>
                 {playbook.nextCycleHint && (
                   <div className="bg-sky-950/40 border border-sky-800 rounded-xl px-4 py-3 text-sky-200 text-sm">{playbook.nextCycleHint}</div>
                 )}
@@ -284,13 +329,6 @@ export default function Home() {
                       <div key={k}><span className="text-slate-500">{k}: </span>{String(v)}</div>
                     ))}
                   </div>
-                </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-slate-400">
-                  <div className="font-semibold text-slate-200 mb-2">池分层</div>
-                  <div>核心：AMAT MU MRVL AVGO TSM LRCX KLAC GLW WDC INTC …</div>
-                  <div>卫星：ALAB LITE CRWV COHR</div>
-                  <div>慎做：RKLB AAOI CRDO SPCX</div>
-                  <div className="mt-2 text-xs">流程：先管理/平旧仓 → 再开新 1–2 个 CSP</div>
                 </div>
               </section>
             )}
