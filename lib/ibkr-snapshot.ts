@@ -1,8 +1,9 @@
 /**
  * IBKR portfolio snapshot for Layers 5 & 6.
  * Updated from live IBKR via Grok connected tools.
- * Vercel cannot call IBKR MCP directly — refresh this file when positions change.
  */
+
+import { ACCOUNT_RULES } from "./rules";
 
 export type IbkrPosition = {
   symbol: string;
@@ -239,12 +240,6 @@ export function getShortPuts(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
       remainingPremiumRatio:
         p.averagePrice > 0 ? p.marketPrice / p.averagePrice : 1,
     }));
-}
-
-function daysToExpiry(expiry: string): number {
-  const t = Date.parse(expiry + "T21:00:00Z");
-  if (Number.isNaN(t)) return 90;
-  return Math.max(0, Math.round((t - Date.now()) / 86400000));
 }
 
 export function getCoveredCalls(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
