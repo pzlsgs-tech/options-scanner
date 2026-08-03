@@ -34,7 +34,7 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
-const AUTO_REFRESH_MS = 2 * 60 * 1000; // 2 minutes
+const AUTO_REFRESH_MS = 2 * 60 * 1000;
 
 export default function Home() {
   const [results, setResults] = useState<Result[]>([]);
@@ -47,11 +47,10 @@ export default function Home() {
   const [market, setMarket] = useState<any>(null);
   const [strategyScores, setStrategyScores] = useState<StrategyScore[]>([]);
   const [topStrategy, setTopStrategy] = useState<StrategyScore | null>(null);
-  const [portfolio, setPortfolio] = useState<any>(null);
   const [ibkr, setIbkr] = useState<any>(null);
   const [playbook, setPlaybook] = useState<any>(null);
   const [optionCriteria, setOptionCriteria] = useState<any>(null);
-  const [tab, setTab] = useState<TabId>("rules");
+  const [tab, setTab] = useState<TabId>("portfolio");
   const [minScore, setMinScore] = useState(50);
   const [search, setSearch] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -73,7 +72,6 @@ export default function Home() {
       setMarket(data.market);
       setStrategyScores(data.strategyScores || []);
       setTopStrategy(data.topStrategy || null);
-      setPortfolio(data.portfolio);
       setIbkr(data.ibkr);
       setPlaybook(data.playbook);
       setOptionCriteria(data.optionCriteria);
@@ -86,12 +84,10 @@ export default function Home() {
     }
   }, [minScore]);
 
-  // Initial load + when minScore changes
   useEffect(() => {
     fetchScan();
   }, [fetchScan]);
 
-  // Auto refresh every 2 minutes when enabled
   useEffect(() => {
     if (!autoRefresh) return;
     const id = setInterval(() => {
@@ -122,7 +118,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
             {updatedAt && (
-              <span title="行情扫描时间">
+              <span>
                 更新 {new Date(updatedAt).toLocaleString("zh-CN")}
                 {refreshing && <span className="ml-1 text-sky-400">刷新中…</span>}
               </span>
@@ -164,7 +160,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {usingFallback && (
           <div className="bg-amber-950/40 border border-amber-800/60 text-amber-200 rounded-xl px-4 py-3 text-sm">
-            行情可能使用缓存价；IBKR 持仓为快照（需对话中「更新持仓」或改代码刷新）。点击「刷新」会重新拉行情与评分。
+            行情可能使用缓存价；IBKR 持仓为快照。点击「刷新」会重拉行情与评分。
           </div>
         )}
         {error && <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">错误: {error}</div>}
@@ -231,8 +227,11 @@ export default function Home() {
 
             {tab === "portfolio" && ibkr && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">第五层：组合风险（IBKR 快照）</h2>
-                <p className="text-xs text-slate-500">快照时间：{ibkr.snapshotAt ? new Date(ibkr.snapshotAt).toLocaleString("zh-CN") : "—"} · 非每次点击刷新都会变，需对话中更新持仓</p>
+                <h2 className="text-lg font-semibold">第五层：组合（IBKR 快照）</h2>
+                <p className="text-xs text-slate-500">
+                  快照：{ibkr.snapshotAt ? new Date(ibkr.snapshotAt).toLocaleString("zh-CN") : "—"} · 更新持仓请在对话中说「更新持仓」
+                </p>
+
                 <div className="grid sm:grid-cols-4 gap-3">
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">NLV</div>
@@ -249,21 +248,66 @@ export default function Home() {
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">未实现盈亏</div>
-                    <div className={`text-xl font-bold ${ibkr.balances?.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>${ibkr.balances?.unrealizedPnl?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className={`text-xl font-bold ${(ibkr.balances?.unrealizedPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>${ibkr.balances?.unrealizedPnl?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                 </div>
+
                 {ibkr.riskFlags?.length > 0 && (
                   <div className="bg-amber-950/40 border border-amber-800 rounded-xl p-4 space-y-1">
                     {ibkr.riskFlags.map((w: string, i: number) => <div key={i} className="text-amber-200 text-sm">⚠ {w}</div>)}
                   </div>
                 )}
-                <h3 className="font-semibold text-slate-300">空头 Put</h3>
+
+                {/* Stocks */}
+                <h3 className="font-semibold text-slate-300 pt-2">股票持仓</h3>
+                {(!ibkr.stocks || ibkr.stocks.length === 0) && (
+                  <div className="text-slate-500 text-sm">无股票持仓</div>
+                )}
+                {ibkr.stocks?.map((s: any) => (
+                  <div key={s.symbol + String(s.qty)} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm items-center">
+                    <div className="font-bold min-w-[70px]">{s.symbol}</div>
+                    <div className="text-slate-400">{s.qty} 股</div>
+                    <div>成本 ${Number(s.avg).toFixed(2)}</div>
+                    <div>现价 ${Number(s.price).toFixed(2)}</div>
+                    <div>市值 ${Number(s.value).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className={Number(s.pnl) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                      浮盈 ${Number(s.pnl).toFixed(0)}
+                    </div>
+                    {s.poolTier && <span className="text-xs text-slate-500">{s.poolTier}</span>}
+                  </div>
+                ))}
+
+                {/* Short Puts */}
+                <h3 className="font-semibold text-slate-300 pt-2">空头 Put（CSP）</h3>
+                {(!ibkr.shortPuts || ibkr.shortPuts.length === 0) && (
+                  <div className="text-slate-500 text-sm">无空头 Put</div>
+                )}
                 {ibkr.shortPuts?.map((p: any) => (
-                  <div key={p.description} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm">
+                  <div key={p.description} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm items-center">
                     <div className="font-bold">{p.underlying} {p.strike}P</div>
                     <div className="text-slate-400">{p.expiry} · DTE {p.dte}</div>
-                    <div className={p.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}>浮盈 ${(p.unrealizedPnl||0).toFixed(0)} ({((p.profitPctOfCredit||0)*100).toFixed(0)}%)</div>
-                    {p.takeProfitHit && <span className="text-emerald-300 text-xs">已达50%止盈线</span>}
+                    <div>入场 {Number(p.entryPremium).toFixed(2)} → 现价 {Number(p.currentPremium).toFixed(2)}</div>
+                    <div className={Number(p.unrealizedPnl) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                      浮盈 ${Number(p.unrealizedPnl || 0).toFixed(0)} ({((p.profitPctOfCredit || 0) * 100).toFixed(0)}%)
+                    </div>
+                    {p.takeProfitHit && <span className="text-emerald-300 text-xs">已达50%止盈</span>}
+                    {p.poolTier && <span className="text-xs text-slate-500">{p.poolTier}</span>}
+                  </div>
+                ))}
+
+                {/* Covered Calls */}
+                <h3 className="font-semibold text-slate-300 pt-2">备兑 Call</h3>
+                {(!ibkr.coveredCalls || ibkr.coveredCalls.length === 0) && (
+                  <div className="text-slate-500 text-sm">无备兑 Call</div>
+                )}
+                {ibkr.coveredCalls?.map((c: any) => (
+                  <div key={c.description || c.underlying + c.strike} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm items-center">
+                    <div className="font-bold">{c.underlying} {c.strike}C</div>
+                    <div className="text-slate-400">{c.expiry}</div>
+                    <div>入场 {Number(c.entryPremium).toFixed(2)} → 现价 {Number(c.currentPremium).toFixed(2)}</div>
+                    <div className={Number(c.unrealizedPnl) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                      浮盈 ${Number(c.unrealizedPnl || 0).toFixed(0)}
+                    </div>
                   </div>
                 ))}
               </section>
@@ -280,7 +324,7 @@ export default function Home() {
                       <span className="text-sm px-2 py-0.5 rounded bg-slate-800">{r.roll!.recommendation}</span>
                     </div>
                     <div className="text-sm text-sky-300">{r.recommendedAction}</div>
-                    <div className="text-xs text-slate-400">浮盈占权利金 {(r.roll!.detail.profitPctOfCredit*100).toFixed(0)}% · DTE {r.roll!.detail.dte}</div>
+                    <div className="text-xs text-slate-400">浮盈占权利金 {(r.roll!.detail.profitPctOfCredit * 100).toFixed(0)}% · DTE {r.roll!.detail.dte}</div>
                   </div>
                 ))}
               </section>
