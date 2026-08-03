@@ -19,17 +19,26 @@ import {
   getStockPositions,
   portfolioRiskFlags,
 } from "@/lib/ibkr-snapshot";
+import {
+  ACCOUNT_RULES,
+  OPTION_RULES,
+  PRINCIPLES,
+  scoreAgainstPlaybook,
+  getPoolTier,
+  POOL_LABELS,
+} from "@/lib/rules";
 
 const FALLBACK_PRICES: Record<string, number> = {
   AAPL: 210, MSFT: 430, NVDA: 199, TSLA: 250, AMZN: 195, META: 530,
-  GOOGL: 180, AMD: 145, SPY: 560, QQQ: 490, IWM: 220, AVGO: 250,
-  AMAT: 180, MU: 110, INTC: 25, TSM: 180, PLTR: 40, NFLX: 700,
+  GOOGL: 180, AMD: 145, SPY: 560, QQQ: 490, IWM: 220, AVGO: 380,
+  AMAT: 400, MU: 820, INTC: 90, TSM: 400, PLTR: 40, NFLX: 700,
   JPM: 220, BAC: 40, GS: 500, XOM: 115, CVX: 155, COST: 900,
   WMT: 95, HD: 380, MCD: 271, DIS: 100, BA: 180, UNH: 520,
   LLY: 800, PFE: 28, COIN: 250, MSTR: 350, SOFI: 15, HOOD: 40,
   BABA: 90, UBER: 75, CRWD: 350, SHOP: 100, PYPL: 75, V: 290,
   MA: 520, IBKR: 88, F: 11, XLE: 90, XLF: 45, XLK: 230, GLD: 240, TLT: 90,
-  COHR: 95, CRDO: 140, GDX: 74,
+  COHR: 95, CRDO: 140, GDX: 74, GLW: 150, WDC: 400, MRVL: 190,
+  ALAB: 120, LITE: 80, CRWV: 70, LRCX: 260, KLAC: 900,
 };
 
 async function fetchOneChart(symbol: string): Promise<Quote | null> {
@@ -83,6 +92,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const minScore = Number(searchParams.get("minScore") || "0");
   const sector = searchParams.get("sector") || "All";
+  const poolFilter = searchParams.get("pool") || "All"; // core | satellite | caution | All
 
   const snapshot = IBKR_SNAPSHOT;
   const effectiveHeld = getHeldSymbols(snapshot);
@@ -104,7 +114,6 @@ export async function GET(req: NextRequest) {
   const topStrategy = strategyScores[0];
   const portfolio = buildPortfolioCheck(effectiveHeld);
 
-  // Roll map by underlying
   const rollByUnderlying: Record<string, ReturnType<typeof scoreRollOpportunity>> = {};
   for (const sp of shortPuts) {
     rollByUnderlying[sp.underlying] = scoreRollOpportunity({
@@ -146,6 +155,15 @@ export async function GET(req: NextRequest) {
 
     const themes = getThemes(meta.symbol);
     const portfolioOk = portfolio.canAddTheme(themes);
+    const themeBlocked = !portfolioOk;
+
+    const playbook = scoreAgainstPlaybook({
+      symbol: meta.symbol,
+      ivRankProxy: scored.ivRankProxy,
+      liquidityScore: scored.liquidityScore,
+      portfolioOk,
+      themeBlocked,
+    });
 
     let marketFit = 50;
     if (market.strategyBias === "sell_premium" && scored.ivRankProxy >= 50 && scored.liquidityScore >= 70) {
@@ -160,7 +178,8 @@ export async function GET(req: NextRequest) {
 
     const roll = rollByUnderlying[meta.symbol];
 
-    const ai = finalScore({
+    // Blend AI score with playbook (quality-first)
+    const baseAi = finalScore({
       marketWeight: marketFit,
       stockScore: underlying.total,
       optionScore: optionLayer.total,
@@ -168,32 +187,48 @@ export async function GET(req: NextRequest) {
       premiumQuality: optionLayer.premiumQuality,
       rollScore: roll?.score,
     });
+    const aiScore = Math.round(baseAi.total * 0.75 + playbook.playbookScore * 0.25);
 
     let recommendedAction = "观望";
     if (roll) {
-      if (roll.recommendation === "获利了结") recommendedAction = `今天: 考虑平仓 ${meta.symbol} Put（已赚 ${(roll.detail.profitPctOfCredit * 100).toFixed(0)}%）`;
+      if (roll.recommendation === "获利了结")
+        recommendedAction = `今天: 考虑平仓 ${meta.symbol} Put（已赚 ${(roll.detail.profitPctOfCredit * 100).toFixed(0)}%）`;
       else if (roll.recommendation === "Roll") recommendedAction = `今天: Roll ${meta.symbol}`;
       else if (roll.recommendation === "观察") recommendedAction = `观察 ${meta.symbol}`;
       else recommendedAction = `不处理 ${meta.symbol}`;
-    } else if (topStrategy.score >= 70 && portfolioOk && ai.total >= 65) {
-      recommendedAction = `可考虑 ${topStrategy.name}`;
+    } else if (themeBlocked) {
+      recommendedAction = "主题额度满 — 先平旧仓";
+    } else if (playbook.tier === "caution") {
+      recommendedAction = "慎做池 — 不建议作为收租主力";
+    } else if (topStrategy.score >= 70 && portfolioOk && aiScore >= 65 && playbook.tier !== "caution") {
+      recommendedAction =
+        playbook.tier === "core"
+          ? `可考虑 CSP（核心池）`
+          : playbook.tier === "satellite"
+          ? `可小仓 CSP（卫星池，权利金需够厚）`
+          : `可考虑 ${topStrategy.name}`;
     }
 
     return {
       ...scored,
       themes,
+      poolTier: playbook.tier,
+      poolLabel: POOL_LABELS[playbook.tier],
+      playbookScore: playbook.playbookScore,
+      playbookNotes: playbook.notes,
       underlying,
       optionLayer,
       portfolioOk,
-      portfolioWarning: portfolioOk ? null : `主题集中: ${themes.join(",")} 已接近上限`,
+      portfolioWarning: portfolioOk ? null : `主题集中: ${themes.join(",")} 已接近上限（≤${ACCOUNT_RULES.maxThemePuts}）`,
       roll,
-      aiScore: ai.total,
-      aiBreakdown: ai.breakdown,
+      aiScore,
+      aiBreakdown: { ...baseAi.breakdown, playbook: playbook.playbookScore },
       recommendedAction,
     };
   });
 
   if (sector !== "All") results = results.filter((r) => r.sector === sector);
+  if (poolFilter !== "All") results = results.filter((r) => r.poolTier === poolFilter);
   results = results.filter((r) => r.aiScore >= minScore);
   results.sort((a, b) => b.aiScore - a.aiScore);
 
@@ -204,6 +239,15 @@ export async function GET(req: NextRequest) {
     market,
     strategyScores,
     topStrategy,
+    playbook: {
+      principles: PRINCIPLES,
+      accountRules: ACCOUNT_RULES,
+      optionRules: OPTION_RULES,
+      nextCycleHint:
+        shortPuts.length >= ACCOUNT_RULES.maxThemePuts
+          ? `当前空头Put ${shortPuts.length} 张，建议先管理/平仓后再开新CSP（每周期最多${ACCOUNT_RULES.maxNewCspPerCycle}张）`
+          : `可规划下一周期 1–2 个CSP，目标权利金约 $${ACCOUNT_RULES.targetPremiumPerCycleUsd}`,
+    },
     ibkr: {
       snapshotAt: snapshot.updatedAt,
       source: snapshot.source,
@@ -217,6 +261,7 @@ export async function GET(req: NextRequest) {
         value: s.marketValue,
         pnl: s.unrealizedPnl,
         dailyPnl: s.dailyPnl,
+        poolTier: getPoolTier(s.symbol),
       })),
       shortPuts: shortPuts.map((p) => ({
         underlying: p.underlying,
@@ -230,6 +275,8 @@ export async function GET(req: NextRequest) {
         dailyPnl: p.dailyPnl,
         profitPctOfCredit: p.profitPctOfCredit,
         marketValue: p.marketValue,
+        poolTier: getPoolTier(p.underlying),
+        takeProfitHit: p.profitPctOfCredit >= ACCOUNT_RULES.takeProfitPctOfCredit / 100,
       })),
       coveredCalls: coveredCalls.map((c) => ({
         underlying: c.underlying || c.symbol,
@@ -241,24 +288,26 @@ export async function GET(req: NextRequest) {
         unrealizedPnl: c.unrealizedPnl,
       })),
       riskFlags: risk.flags,
-      limits: risk.limits,
+      limits: { ...risk.limits, ...ACCOUNT_RULES },
     },
     portfolio: {
       held: effectiveHeld,
       themeCounts: portfolio.themeCounts,
       warnings: [...portfolio.sectorWarnings, ...risk.flags],
-      limits: portfolio.limits,
+      limits: { ...portfolio.limits, ...ACCOUNT_RULES },
     },
     optionCriteria: {
-      dte: "30–45天（可至60）",
-      delta: "0.25–0.35（卖Put）",
-      ivRank: ">60 优先",
-      oi: ">500",
-      volume: ">100",
-      bidAsk: "<5%",
-      popOtm: ">65%",
+      dte: `${OPTION_RULES.dteMin}–${OPTION_RULES.dteMax}天（最长${OPTION_RULES.dteHardMax}）`,
+      delta: `${OPTION_RULES.deltaMin}–${OPTION_RULES.deltaMax}（硬上限${OPTION_RULES.deltaHardMax}）`,
+      ivRank: `≥${OPTION_RULES.ivRankPrefer}优先，≥${OPTION_RULES.ivRankStrong}更强（非硬门槛）`,
+      oi: `>${OPTION_RULES.minOpenInterest}`,
+      volume: `>${OPTION_RULES.minOptionVolume}`,
+      bidAsk: `<${OPTION_RULES.maxBidAskPct}%`,
+      popOtm: `>${OPTION_RULES.minPopOtm}%`,
+      earnings: `避开${OPTION_RULES.earningsAvoidDays}天内财报`,
+      takeProfit: `浮盈≥权利金${ACCOUNT_RULES.takeProfitPctOfCredit}%优先平仓`,
     },
     results,
-    note: `第5/6层已接入 IBKR 快照（${snapshot.updatedAt}）。NLV≈$${snapshot.balances.netLiquidation.toFixed(0)} · 现金${snapshot.balances.cashPct.toFixed(0)}%。空头Put: ${shortPuts.map((p) => p.underlying).join(", ") || "无"}。`,
+    note: `Playbook已启用：质量优先、核心/卫星池、35天1–2个CSP、现金≥40%、同主题Put≤2、50%止盈。IBKR快照 ${snapshot.updatedAt}。`,
   });
 }
