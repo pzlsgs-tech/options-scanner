@@ -1,8 +1,7 @@
 /**
  * IBKR portfolio snapshot for Layers 5 & 6.
  * Updated from live IBKR via Grok connected tools.
- * Vercel cannot call IBKR MCP directly — refresh this file (or POST /api/portfolio)
- * when positions change. Structure matches IBKR get_account_positions + balances.
+ * Vercel cannot call IBKR MCP directly — refresh this file when positions change.
  */
 
 export type IbkrPosition = {
@@ -15,10 +14,9 @@ export type IbkrPosition = {
   averagePrice: number;
   unrealizedPnl: number;
   dailyPnl: number;
-  // option fields
   right?: "P" | "C";
   strike?: number;
-  expiry?: string; // YYYY-MM-DD
+  expiry?: string;
   underlying?: string;
 };
 
@@ -34,7 +32,7 @@ export type IbkrBalances = {
 export type IbkrSectorAlloc = {
   name: string;
   nav: number;
-  weight: number; // 0-1 long side
+  weight: number;
   side: "long" | "short";
 };
 
@@ -46,14 +44,12 @@ export type IbkrSnapshot = {
   sectors: IbkrSectorAlloc[];
 };
 
-/** Parse "AMAT Nov20'26 540 PUT @AMEX" style descriptions */
 export function parseOptionDescription(desc: string): {
   underlying: string;
   right: "P" | "C";
   strike: number;
   expiry: string;
 } | null {
-  // e.g. AMAT Nov20'26 540 PUT @AMEX | MCD Sep04'26 285 CALL @AMEX
   const m = desc.match(
     /^([A-Z.]+)\s+([A-Za-z]{3})(\d{1,2})'(\d{2})\s+(\d+(?:\.\d+)?)\s+(PUT|CALL)/i
   );
@@ -79,9 +75,9 @@ function daysToExpiry(expiry: string): number {
   return Math.max(0, Math.round((t - Date.now()) / 86400000));
 }
 
-/** Snapshot captured 2026-08-01 from live IBKR */
+/** Snapshot captured 2026-08-03 from live IBKR */
 export const IBKR_SNAPSHOT: IbkrSnapshot = {
-  updatedAt: "2026-08-01T03:30:00.000Z",
+  updatedAt: "2026-08-03T08:00:00.000Z",
   source: "ibkr_live",
   positions: [
     {
@@ -89,11 +85,11 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       description: "AMAT Nov20'26 540 PUT @AMEX",
       assetClass: "OPT",
       position: -1,
-      marketPrice: 103.88,
-      marketValue: -10388.21,
-      averagePrice: 129.76,
-      unrealizedPnl: 2587.74,
-      dailyPnl: 316.18,
+      marketPrice: 103.882,
+      marketValue: -10388.2,
+      averagePrice: 129.759535,
+      unrealizedPnl: 2587.75,
+      dailyPnl: -56.07,
       right: "P",
       strike: 540,
       expiry: "2026-11-20",
@@ -104,11 +100,11 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       description: "COHR Nov20'26 310 PUT @AMEX",
       assetClass: "OPT",
       position: -1,
-      marketPrice: 84.3,
+      marketPrice: 84.2984,
       marketValue: -8429.84,
-      averagePrice: 107.87,
+      averagePrice: 107.865034,
       unrealizedPnl: 2356.66,
-      dailyPnl: 793.64,
+      dailyPnl: 50.96,
       right: "P",
       strike: 310,
       expiry: "2026-11-20",
@@ -119,11 +115,11 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       description: "CRDO Nov20'26 180 PUT @AMEX",
       assetClass: "OPT",
       position: -1,
-      marketPrice: 32.76,
+      marketPrice: 32.7593,
       marketValue: -3275.93,
-      averagePrice: 42.09,
+      averagePrice: 42.086511,
       unrealizedPnl: 932.72,
-      dailyPnl: 235.97,
+      dailyPnl: -45.16,
       right: "P",
       strike: 180,
       expiry: "2026-11-20",
@@ -134,11 +130,11 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       description: "MCD Sep04'26 285 CALL @AMEX",
       assetClass: "OPT",
       position: -1,
-      marketPrice: 3.43,
+      marketPrice: 3.4297,
       marketValue: -342.97,
-      averagePrice: 3.49,
+      averagePrice: 3.488623,
       unrealizedPnl: 5.89,
-      dailyPnl: 5.89,
+      dailyPnl: 9.24,
       right: "C",
       strike: 285,
       expiry: "2026-09-04",
@@ -149,63 +145,63 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       description: "GDX",
       assetClass: "STK",
       position: 100,
-      marketPrice: 74.1,
-      marketValue: 7410.0,
-      averagePrice: 87.31,
-      unrealizedPnl: -1320.85,
-      dailyPnl: -268.0,
+      marketPrice: 75.01,
+      marketValue: 7501.0,
+      averagePrice: 87.308467,
+      unrealizedPnl: -1229.85,
+      dailyPnl: 91.0,
     },
     {
       symbol: "MCD",
       description: "MCD",
       assetClass: "STK",
       position: 100,
-      marketPrice: 270.64,
-      marketValue: 27064.0,
-      averagePrice: 280.3,
-      unrealizedPnl: -966.03,
-      dailyPnl: 220.0,
+      marketPrice: 272.8,
+      marketValue: 27280.0,
+      averagePrice: 280.300363,
+      unrealizedPnl: -750.04,
+      dailyPnl: 216.0,
     },
     {
       symbol: "NVDA",
       description: "NVDA",
       assetClass: "STK",
       position: 40,
-      marketPrice: 198.95,
-      marketValue: 7958.0,
-      averagePrice: 172.52,
-      unrealizedPnl: 1057.33,
-      dailyPnl: 156.4,
+      marketPrice: 200.9,
+      marketValue: 8036.0,
+      averagePrice: 172.516855,
+      unrealizedPnl: 1135.33,
+      dailyPnl: 6.0,
     },
     {
       symbol: "VWRA",
       description: "VWRA @LSEETF",
       assetClass: "STK",
       position: 100,
-      marketPrice: 187.42,
-      marketValue: 18742.0,
-      averagePrice: 173.48,
-      unrealizedPnl: 1393.66,
-      dailyPnl: 74.0,
+      marketPrice: 189.32,
+      marketValue: 18932.0,
+      averagePrice: 173.483392,
+      unrealizedPnl: 1583.66,
+      dailyPnl: 190.0,
     },
     {
       symbol: "IBKR",
       description: "IBKR",
       assetClass: "STK",
       position: 4.7808,
-      marketPrice: 87.53,
-      marketValue: 418.47,
-      averagePrice: 71.22,
-      unrealizedPnl: 77.98,
-      dailyPnl: -14.1,
+      marketPrice: 89.0,
+      marketValue: 425.49,
+      averagePrice: 71.22029786,
+      unrealizedPnl: 85.0,
+      dailyPnl: 4.83,
     },
   ],
   balances: {
-    netLiquidation: 121129.26,
-    cashBalance: 71230.26,
-    stockMarketValue: 78983.26,
-    unrealizedPnl: 7426.56,
-    cashPct: 58.8, // cash / NLV
+    netLiquidation: 172378.02,
+    cashBalance: 121244.49,
+    stockMarketValue: 79663.61,
+    unrealizedPnl: 8655.4,
+    cashPct: 70.3,
     currency: "BASE",
   },
   sectors: [
@@ -236,13 +232,19 @@ export function getShortPuts(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
       ...p,
       underlying: p.underlying || p.symbol,
       dte: p.expiry ? daysToExpiry(p.expiry) : 90,
-      // profit fraction vs credit received (avg price is entry premium)
       profitPctOfCredit:
-        p.averagePrice > 0 ? p.unrealizedPnl / (Math.abs(p.averagePrice) * 100 * Math.abs(p.position)) : 0,
-      // how much of max premium is still left (current / entry)
+        p.averagePrice > 0
+          ? p.unrealizedPnl / (Math.abs(p.averagePrice) * 100 * Math.abs(p.position))
+          : 0,
       remainingPremiumRatio:
         p.averagePrice > 0 ? p.marketPrice / p.averagePrice : 1,
     }));
+}
+
+function daysToExpiry(expiry: string): number {
+  const t = Date.parse(expiry + "T21:00:00Z");
+  if (Number.isNaN(t)) return 90;
+  return Math.max(0, Math.round((t - Date.now()) / 86400000));
 }
 
 export function getCoveredCalls(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
@@ -258,7 +260,11 @@ export function getStockPositions(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
 export function portfolioRiskFlags(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
   const flags: string[] = [];
   const { balances, sectors } = snapshot;
-  const limits = { maxSectorPct: 30, maxSinglePct: 15, minCashPct: 40 };
+  const limits = {
+    maxSectorPct: ACCOUNT_RULES.maxSectorPct,
+    maxSinglePct: ACCOUNT_RULES.maxSingleMarginPct,
+    minCashPct: ACCOUNT_RULES.minCashPct,
+  };
 
   if (balances.cashPct < limits.minCashPct) {
     flags.push(`现金占比 ${balances.cashPct.toFixed(1)}% < 目标 ${limits.minCashPct}%`);
@@ -277,7 +283,7 @@ export function portfolioRiskFlags(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
 
   const shorts = getShortPuts(snapshot);
   if (shorts.length >= 3) {
-    flags.push(`已有 ${shorts.length} 张空头 Put（AMAT/COHR/CRDO 同属科技/半导主题）`);
+    flags.push(`已有 ${shorts.length} 张空头 Put（科技/半导主题偏集中）`);
   }
 
   return { flags, limits, cashPct: balances.cashPct, nlv: balances.netLiquidation };
