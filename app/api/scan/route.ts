@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const minScore = Number(searchParams.get("minScore") || "0");
   const sector = searchParams.get("sector") || "All";
-  const poolFilter = searchParams.get("pool") || "All"; // core | satellite | caution | All
+  const poolFilter = searchParams.get("pool") || "All";
 
   const snapshot = IBKR_SNAPSHOT;
   const effectiveHeld = getHeldSymbols(snapshot);
@@ -178,7 +178,6 @@ export async function GET(req: NextRequest) {
 
     const roll = rollByUnderlying[meta.symbol];
 
-    // Blend AI score with playbook (quality-first)
     const baseAi = finalScore({
       marketWeight: marketFit,
       stockScore: underlying.total,
@@ -200,13 +199,14 @@ export async function GET(req: NextRequest) {
       recommendedAction = "主题额度满 — 先平旧仓";
     } else if (playbook.tier === "caution") {
       recommendedAction = "慎做池 — 不建议作为收租主力";
-    } else if (topStrategy.score >= 70 && portfolioOk && aiScore >= 65 && playbook.tier !== "caution") {
-      recommendedAction =
-        playbook.tier === "core"
-          ? `可考虑 CSP（核心池）`
-          : playbook.tier === "satellite"
-          ? `可小仓 CSP（卫星池，权利金需够厚）`
-          : `可考虑 ${topStrategy.name}`;
+    } else if (topStrategy.score >= 70 && portfolioOk && aiScore >= 65) {
+      if (playbook.tier === "core") {
+        recommendedAction = "可考虑 CSP（核心池）";
+      } else if (playbook.tier === "satellite") {
+        recommendedAction = "可小仓 CSP（卫星池，权利金需够厚）";
+      } else {
+        recommendedAction = `可考虑 ${topStrategy.name}`;
+      }
     }
 
     return {
