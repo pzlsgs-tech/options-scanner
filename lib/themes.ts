@@ -7,6 +7,7 @@ export type Theme =
   | "Consumer"
   | "Healthcare"
   | "ETF"
+  | "Optical"
   | "Other";
 
 export const THEME_LABELS: Record<Theme, string> = {
@@ -17,10 +18,10 @@ export const THEME_LABELS: Record<Theme, string> = {
   Consumer: "消费",
   Healthcare: "医疗",
   ETF: "ETF",
+  Optical: "光通信",
   Other: "其他",
 };
 
-/** Map symbols to themes for sector correlation limits */
 export const SYMBOL_THEMES: Record<string, Theme[]> = {
   AAPL: ["AI", "Consumer"],
   MSFT: ["AI"],
@@ -40,6 +41,7 @@ export const SYMBOL_THEMES: Record<string, Theme[]> = {
   ASML: ["Semi"],
   SMCI: ["AI", "Semi"],
   ARM: ["Semi", "AI"],
+  MRVL: ["Semi", "AI"],
   PLTR: ["AI"],
   CRM: ["AI"],
   ORCL: ["AI"],
@@ -109,6 +111,16 @@ export const SYMBOL_THEMES: Record<string, Theme[]> = {
   GE: ["Other"],
   FCX: ["Energy"],
   NEM: ["Energy"],
+  GLW: ["Optical", "Other"],
+  WDC: ["Semi"],
+  COHR: ["Optical", "Semi"],
+  LITE: ["Optical"],
+  ALAB: ["Semi", "AI"],
+  CRWV: ["AI"],
+  CRDO: ["Semi", "AI"],
+  RKLB: ["Other"],
+  AAOI: ["Optical"],
+  SPCX: ["Other"],
 };
 
 export function getThemes(symbol: string): Theme[] {
