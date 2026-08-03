@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Search, RefreshCw, Zap, Layers, Target, Briefcase, RefreshCcw, Brain, ChevronDown,
+  Search, RefreshCw, Zap, Layers, Target, Briefcase, RefreshCcw, Brain, ChevronDown, BookOpen,
 } from "lucide-react";
 
 type StrategyScore = { name: string; score: number; reason: string };
@@ -20,6 +20,7 @@ type Result = {
     detail: { strike: number; expiry: string; dte: number; entryPremium: number; currentPremium: number; unrealizedPnl: number; profitPctOfCredit: number };
   };
   aiScore: number; aiBreakdown: Record<string, number>; recommendedAction: string;
+  poolTier?: string; poolLabel?: string; playbookScore?: number; playbookNotes?: string[];
 };
 
 const TABS = [
@@ -29,6 +30,7 @@ const TABS = [
   { id: "portfolio", label: "5 组合·IBKR", icon: Briefcase },
   { id: "roll", label: "6 展期", icon: RefreshCcw },
   { id: "ai", label: "7 AI评分", icon: Brain },
+  { id: "rules", label: "原则", icon: BookOpen },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -44,7 +46,9 @@ export default function Home() {
   const [topStrategy, setTopStrategy] = useState<StrategyScore | null>(null);
   const [portfolio, setPortfolio] = useState<any>(null);
   const [ibkr, setIbkr] = useState<any>(null);
-  const [tab, setTab] = useState<TabId>("portfolio");
+  const [playbook, setPlaybook] = useState<any>(null);
+  const [optionCriteria, setOptionCriteria] = useState<any>(null);
+  const [tab, setTab] = useState<TabId>("rules");
   const [minScore, setMinScore] = useState(50);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -64,6 +68,8 @@ export default function Home() {
       setTopStrategy(data.topStrategy || null);
       setPortfolio(data.portfolio);
       setIbkr(data.ibkr);
+      setPlaybook(data.playbook);
+      setOptionCriteria(data.optionCriteria);
     } catch (e: any) {
       setError(e.message || "扫描失败");
     } finally {
@@ -90,7 +96,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Options Scanner Pro</h1>
-              <p className="text-xs text-slate-400">六层筛选 · IBKR 持仓已接入第5/6层</p>
+              <p className="text-xs text-slate-400">六层筛选 · CSP Playbook · IBKR</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400">
@@ -118,7 +124,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {usingFallback && (
           <div className="bg-amber-950/40 border border-amber-800/60 text-amber-200 rounded-xl px-4 py-3 text-sm">
-            行情报价使用代理/缓存；持仓数据来自 IBKR 快照。
+            行情报价使用代理/缓存；持仓数据来自 IBKR 快照；筛选原则已写入评分。
           </div>
         )}
         {error && <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">错误: {error}</div>}
@@ -161,36 +167,36 @@ export default function Home() {
 
             {tab === "scan" && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">第三/四层：标的与期权</h2>
+                <h2 className="text-lg font-semibold">第三/四层：标的与期权（含池分层）</h2>
                 <div className="flex gap-3">
-                  <input type="number" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" placeholder="最低分" />
+                  <input type="number" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
                   <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索" className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
                 </div>
-                {filtered.slice(0, 25).map((r) => (
+                {filtered.slice(0, 30).map((r) => (
                   <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-3 items-center">
-                    <div className="font-bold min-w-[90px]">{r.symbol} <span className="text-sky-400">{r.aiScore}</span></div>
+                    <div className="font-bold min-w-[100px]">
+                      {r.symbol} <span className="text-sky-400">{r.aiScore}</span>
+                      {r.poolLabel && <div className="text-xs text-slate-500">{r.poolLabel}</div>}
+                    </div>
                     <div className="text-sm">${r.price.toFixed(2)} <span className={r.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}>{r.changePercent.toFixed(2)}%</span></div>
-                    <div className="text-xs text-sky-300">{r.recommendedAction}</div>
+                    <div className="text-xs text-sky-300 flex-1">{r.recommendedAction}</div>
                   </div>
                 ))}
               </section>
             )}
 
-            {/* PORTFOLIO IBKR */}
             {tab === "portfolio" && ibkr && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2"><Briefcase className="w-5 h-5 text-sky-400" />第五层：组合风险（IBKR 实时快照）</h2>
-                <p className="text-xs text-slate-500">快照时间：{new Date(ibkr.snapshotAt).toLocaleString("zh-CN")} · 来源 {ibkr.source}</p>
-
+                <h2 className="text-lg font-semibold">第五层：组合风险（IBKR）</h2>
                 <div className="grid sm:grid-cols-4 gap-3">
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                    <div className="text-xs text-slate-500">Net Liquidation</div>
+                    <div className="text-xs text-slate-500">NLV</div>
                     <div className="text-xl font-bold">${ibkr.balances?.netLiquidation?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">现金</div>
                     <div className="text-xl font-bold">${ibkr.balances?.cashBalance?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                    <div className={`text-xs ${ibkr.balances?.cashPct >= 40 ? "text-emerald-400" : "text-amber-400"}`}>{ibkr.balances?.cashPct?.toFixed(1)}% {ibkr.balances?.cashPct >= 40 ? "✓≥40%" : "<40%"}</div>
+                    <div className={`text-xs ${ibkr.balances?.cashPct >= 40 ? "text-emerald-400" : "text-amber-400"}`}>{ibkr.balances?.cashPct?.toFixed(1)}%</div>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">股票市值</div>
@@ -201,109 +207,35 @@ export default function Home() {
                     <div className={`text-xl font-bold ${ibkr.balances?.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>${ibkr.balances?.unrealizedPnl?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                 </div>
-
                 {ibkr.riskFlags?.length > 0 && (
                   <div className="bg-amber-950/40 border border-amber-800 rounded-xl p-4 space-y-1">
                     {ibkr.riskFlags.map((w: string, i: number) => <div key={i} className="text-amber-200 text-sm">⚠ {w}</div>)}
                   </div>
                 )}
-
-                <h3 className="font-semibold text-slate-300">股票持仓</h3>
-                <div className="overflow-x-auto rounded-xl border border-slate-800">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-900 text-slate-400 text-xs"><tr>
-                      <th className="text-left p-3">标的</th><th className="text-right p-3">数量</th><th className="text-right p-3">成本</th><th className="text-right p-3">现价</th><th className="text-right p-3">市值</th><th className="text-right p-3">浮盈亏</th>
-                    </tr></thead>
-                    <tbody>
-                      {ibkr.stocks?.map((s: any) => (
-                        <tr key={s.symbol} className="border-t border-slate-800">
-                          <td className="p-3 font-medium">{s.symbol}</td>
-                          <td className="p-3 text-right">{s.qty}</td>
-                          <td className="p-3 text-right">{s.avg?.toFixed(2)}</td>
-                          <td className="p-3 text-right">{s.price?.toFixed(2)}</td>
-                          <td className="p-3 text-right">{s.value?.toFixed(0)}</td>
-                          <td className={`p-3 text-right ${s.pnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>{s.pnl?.toFixed(0)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <h3 className="font-semibold text-slate-300">空头 Put（保证金占用核心）</h3>
-                <div className="space-y-2">
-                  {ibkr.shortPuts?.map((p: any) => (
-                    <div key={p.description} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm">
-                      <div className="font-bold">{p.underlying} {p.strike}P</div>
-                      <div className="text-slate-400">{p.expiry} · DTE {p.dte}</div>
-                      <div>入场 {p.entryPremium?.toFixed(2)} → 现价 {p.currentPremium?.toFixed(2)}</div>
-                      <div className={p.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}>浮盈 ${p.unrealizedPnl?.toFixed(0)} ({(p.profitPctOfCredit * 100).toFixed(0)}%)</div>
-                    </div>
-                  ))}
-                </div>
-
-                {ibkr.coveredCalls?.length > 0 && (
-                  <>
-                    <h3 className="font-semibold text-slate-300">备兑 Call</h3>
-                    {ibkr.coveredCalls.map((c: any) => (
-                      <div key={c.description} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm flex flex-wrap gap-4">
-                        <div className="font-bold">{c.underlying} {c.strike}C</div>
-                        <div className="text-slate-400">{c.expiry}</div>
-                        <div>权利金 {c.entryPremium?.toFixed(2)} → {c.currentPremium?.toFixed(2)}</div>
-                        <div className="text-emerald-400">浮盈 ${c.unrealizedPnl?.toFixed(0)}</div>
-                      </div>
-                    ))}
-                  </>
-                )}
-
-                <h3 className="font-semibold text-slate-300">行业配置</h3>
-                <div className="grid sm:grid-cols-2 gap-2">
-                  {ibkr.sectors?.filter((s: any) => s.side === "long").map((s: any) => (
-                    <div key={s.name} className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 flex justify-between text-sm">
-                      <span>{s.name}</span>
-                      <span className={s.weight * 100 > 30 ? "text-amber-400" : "text-slate-300"}>{(s.weight * 100).toFixed(1)}%</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="text-xs text-slate-600">限制：同主题 Sell Put ≤2 · 单行业 ≤30% · 单票 ≤15% · 现金 &gt;40%</div>
+                <h3 className="font-semibold text-slate-300">空头 Put</h3>
+                {ibkr.shortPuts?.map((p: any) => (
+                  <div key={p.description} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm">
+                    <div className="font-bold">{p.underlying} {p.strike}P</div>
+                    <div className="text-slate-400">{p.expiry} · DTE {p.dte}</div>
+                    <div className={p.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}>浮盈 ${(p.unrealizedPnl||0).toFixed(0)} ({((p.profitPctOfCredit||0)*100).toFixed(0)}%)</div>
+                    {p.takeProfitHit && <span className="text-emerald-300 text-xs">已达50%止盈线</span>}
+                  </div>
+                ))}
               </section>
             )}
 
-            {/* ROLL */}
             {tab === "roll" && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2"><RefreshCcw className="w-5 h-5 text-sky-400" />第六层：Roll Scanner（基于 IBKR 空头 Put）</h2>
-                {rollResults.length === 0 && <div className="text-slate-500">无空头 Put 持仓</div>}
+                <h2 className="text-lg font-semibold">第六层：Roll Scanner</h2>
+                {rollResults.length === 0 && <div className="text-slate-500">无空头 Put</div>}
                 {rollResults.map((r) => (
-                  <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <div className="font-bold text-lg">{r.symbol} {r.roll!.detail.strike} Put</div>
-                        <div className="text-xs text-slate-500">{r.roll!.detail.expiry} · DTE {r.roll!.detail.dte}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-amber-400">{"★".repeat(r.roll!.stars)}{"☆".repeat(5 - r.roll!.stars)}</span>
-                        <span className={`px-2 py-0.5 rounded text-sm ${
-                          r.roll!.recommendation === "获利了结" || r.roll!.recommendation === "Roll" ? "bg-emerald-900/60 text-emerald-300" :
-                          r.roll!.recommendation === "观察" ? "bg-amber-900/60 text-amber-300" : "bg-slate-700 text-slate-400"
-                        }`}>{r.roll!.recommendation}</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                      <div className="bg-slate-950 rounded-lg p-3"><div className="text-xs text-slate-500">入场权利金</div>{r.roll!.detail.entryPremium.toFixed(2)}</div>
-                      <div className="bg-slate-950 rounded-lg p-3"><div className="text-xs text-slate-500">当前权利金</div>{r.roll!.detail.currentPremium.toFixed(2)}</div>
-                      <div className="bg-slate-950 rounded-lg p-3"><div className="text-xs text-slate-500">浮盈</div><span className="text-emerald-400">${r.roll!.detail.unrealizedPnl.toFixed(0)}</span></div>
-                      <div className="bg-slate-950 rounded-lg p-3"><div className="text-xs text-slate-500">占权利金</div>{(r.roll!.detail.profitPctOfCredit * 100).toFixed(0)}%</div>
+                  <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="font-bold">{r.symbol} {r.roll!.detail.strike}P</div>
+                      <span className="text-sm px-2 py-0.5 rounded bg-slate-800">{r.roll!.recommendation}</span>
                     </div>
                     <div className="text-sm text-sky-300">{r.recommendedAction}</div>
-                    <div className="grid sm:grid-cols-2 gap-2 text-sm">
-                      {r.roll!.factors.map((f, i) => (
-                        <div key={i} className="bg-slate-950 rounded-lg p-3">
-                          <div className="text-xs text-slate-500">{f.label} {f.weight}</div>
-                          <div>{f.value}</div>
-                        </div>
-                      ))}
-                    </div>
+                    <div className="text-xs text-slate-400">浮盈占权利金 {(r.roll!.detail.profitPctOfCredit*100).toFixed(0)}% · DTE {r.roll!.detail.dte}</div>
                   </div>
                 ))}
               </section>
@@ -311,14 +243,55 @@ export default function Home() {
 
             {tab === "ai" && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">第七层：AI 综合评分</h2>
-                {filtered.slice(0, 20).map((r) => (
+                <h2 className="text-lg font-semibold">第七层：AI 综合评分（含 Playbook 25%）</h2>
+                {filtered.slice(0, 25).map((r) => (
                   <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center gap-4">
                     <div className={`text-2xl font-bold w-14 text-center ${r.aiScore >= 80 ? "text-emerald-400" : r.aiScore >= 65 ? "text-sky-400" : "text-slate-400"}`}>{r.aiScore}</div>
-                    <div className="font-bold min-w-[70px]">{r.symbol}</div>
+                    <div className="font-bold min-w-[70px]">{r.symbol}<div className="text-xs text-slate-500">{r.poolLabel}</div></div>
                     <div className="text-sm text-sky-300 flex-1">{r.recommendedAction}</div>
                   </div>
                 ))}
+              </section>
+            )}
+
+            {tab === "rules" && playbook && (
+              <section className="space-y-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2"><BookOpen className="w-5 h-5 text-sky-400" />CSP 筛选原则（Playbook）</h2>
+                {playbook.nextCycleHint && (
+                  <div className="bg-sky-950/40 border border-sky-800 rounded-xl px-4 py-3 text-sky-200 text-sm">{playbook.nextCycleHint}</div>
+                )}
+                <div className="space-y-3">
+                  {(playbook.principles || []).map((pr: any) => (
+                    <div key={pr.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                      <div className="font-semibold">{pr.title}</div>
+                      <div className="text-sm text-slate-400 mt-1">{pr.detail}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
+                    <div className="text-xs text-slate-500 mb-2">账户纪律</div>
+                    <div>周期：约每 {playbook.accountRules?.cycleDays} 天，最多 {playbook.accountRules?.maxNewCspPerCycle} 个 CSP</div>
+                    <div>现金 ≥ {playbook.accountRules?.minCashPct}% NLV</div>
+                    <div>单票保证金 ≤ {playbook.accountRules?.maxSingleMarginPct}% NLV</div>
+                    <div>同主题 Put ≤ {playbook.accountRules?.maxThemePuts}</div>
+                    <div>周期目标权利金 ≈ ${playbook.accountRules?.targetPremiumPerCycleUsd}</div>
+                    <div>止盈：浮盈 ≥ 权利金 {playbook.accountRules?.takeProfitPctOfCredit}%</div>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
+                    <div className="text-xs text-slate-500 mb-2">合约参数</div>
+                    {optionCriteria && Object.entries(optionCriteria).map(([k, v]) => (
+                      <div key={k}><span className="text-slate-500">{k}: </span>{String(v)}</div>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-slate-400">
+                  <div className="font-semibold text-slate-200 mb-2">池分层</div>
+                  <div>核心：AMAT MU MRVL AVGO TSM LRCX KLAC GLW WDC INTC …</div>
+                  <div>卫星：ALAB LITE CRWV COHR</div>
+                  <div>慎做：RKLB AAOI CRDO SPCX</div>
+                  <div className="mt-2 text-xs">流程：先管理/平旧仓 → 再开新 1–2 个 CSP</div>
+                </div>
               </section>
             )}
 
