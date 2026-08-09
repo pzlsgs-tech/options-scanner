@@ -1,5 +1,12 @@
 /**
  * 展期链条会计：主止盈 = 链累计净权利金的 50%
+ *
+ * 链净权利金 = 当前腿入场权利金 − 此前腿已实现亏损
+ * 目标利润   = 链净权利金 × 50%
+ * 最大买回成本 = 链净权利金 − 目标利润 = 链净权利金 × 50%
+ * 目标平仓单价 = 最大买回成本 / (100 × 张数)
+ *
+ * 例 AMAT：净 5009.95 → 目标利润 2505 → 买回成本 ≤2505 → 单价 ≤25.05
  */
 
 export type RollChain = {
@@ -21,7 +28,7 @@ export const ROLL_CHAINS: Record<string, RollChain> = {
   AMAT: {
     underlying: "AMAT",
     priorRealizedLossUsd: 7966.0,
-    currentLegCreditUsd: 12975.95, // 扣佣后
+    currentLegCreditUsd: 12975.95,
     contracts: 1,
     notes: "21AUG26 580P 亏损 → 20NOV26 540P",
   },
@@ -45,49 +52,49 @@ export type ChainTakeProfit = {
   underlying: string;
   priorRealizedLossUsd: number;
   currentLegCreditUsd: number;
-  /** 链条累计净收权利金 */
   chainNetCreditUsd: number;
-  /** 链级 50% 目标利润 */
   targetProfitUsd: number;
-  /** 为达到链 50%，当前腿最多可花费的买回成本 USD */
   maxBuybackCostUsd: number;
-  /** 平仓目标单价（USD/股，约等于期权报价） */
   targetClosePrice: number;
-  /** 当前报价 */
   currentPrice: number;
-  /** 若现在平仓，链级已实现利润 USD */
   chainPnlIfCloseNowUsd: number;
-  /** 链级利润占链净权利金比例（现价平） */
   chainProfitPctIfCloseNow: number;
-  /** 是否已达到链 50% */
   takeProfitHit: boolean;
-  /** 进度：越接近 1 越接近目标价（用价格路径粗算） */
   progressToTarget: number;
   notes?: string;
 };
 
 export function computeChainTakeProfit(params: {
   underlying: string;
-  currentPremium: number; // 期权现价
+  currentPremium: number;
   position?: number;
 }): ChainTakeProfit | null {
   const chain = ROLL_CHAINS[params.underlying];
   if (!chain) return null;
 
   const contracts = Math.abs(params.position ?? chain.contracts);
+  const mult = 100 * contracts;
+
+  // 链净权利金 = 本腿入场 − 历史已实现亏损
   const chainNet = chain.currentLegCreditUsd - chain.priorRealizedLossUsd;
+  // 目标：整条链最终净利润 = 链净的 50%
   const targetProfit = chainNet * 0.5;
-  const maxBuyback = chain.currentLegCreditUsd - targetProfit;
-  const targetClosePrice = maxBuyback / (100 * contracts);
-  const currentCost = params.currentPremium * 100 * contracts;
+  // 买回成本上限：本腿入场 − 历史亏 − 目标利润 = 链净 − 目标利润 = 链净 × 50%
+  const maxBuyback = chainNet - targetProfit; // === chainNet * 0.5
+  const targetClosePrice = maxBuyback / mult;
+
+  const currentCost = params.currentPremium * mult;
+  // 现价平仓时的链级盈亏
   const chainPnlNow = chain.currentLegCreditUsd - currentCost - chain.priorRealizedLossUsd;
   const chainPct = chainNet > 0 ? chainPnlNow / chainNet : 0;
 
-  // 进度：从入场价到目标价的路径（用 currentLeg credit /100 作入场参考）
-  const entryPx = chain.currentLegCreditUsd / (100 * contracts);
+  // 进度：从本腿入场价 → 目标价（0=刚开仓，1=到达目标价）
+  const entryPx = chain.currentLegCreditUsd / mult;
   const span = entryPx - targetClosePrice;
   const progress =
-    span > 0 ? Math.max(0, Math.min(1, (entryPx - params.currentPremium) / span)) : 0;
+    span > 0
+      ? Math.max(0, Math.min(1, (entryPx - params.currentPremium) / span))
+      : 0;
 
   return {
     underlying: params.underlying,
