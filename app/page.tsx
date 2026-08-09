@@ -18,6 +18,10 @@ type Result = {
     score: number; stars: number; recommendation: string;
     factors: { label: string; value: string; weight: string }[];
     detail: { strike: number; expiry: string; dte: number; entryPremium: number; currentPremium: number; unrealizedPnl: number; profitPctOfCredit: number };
+    chain?: {
+      targetClosePrice: number; progressToTarget: number; takeProfitHit: boolean;
+      chainNetCreditUsd: number; chainPnlIfCloseNowUsd: number; chainProfitPctIfCloseNow: number;
+    };
   };
   aiScore: number; aiBreakdown: Record<string, number>; recommendedAction: string;
   poolTier?: string; poolLabel?: string; playbookScore?: number; playbookNotes?: string[];
@@ -84,15 +88,11 @@ export default function Home() {
     }
   }, [minScore]);
 
-  useEffect(() => {
-    fetchScan();
-  }, [fetchScan]);
+  useEffect(() => { fetchScan(); }, [fetchScan]);
 
   useEffect(() => {
     if (!autoRefresh) return;
-    const id = setInterval(() => {
-      fetchScan({ silent: true });
-    }, AUTO_REFRESH_MS);
+    const id = setInterval(() => fetchScan({ silent: true }), AUTO_REFRESH_MS);
     return () => clearInterval(id);
   }, [autoRefresh, fetchScan]);
 
@@ -113,7 +113,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Options Scanner Pro</h1>
-              <p className="text-xs text-slate-400">六层筛选 · CSP Playbook · IBKR</p>
+              <p className="text-xs text-slate-400">六层筛选 · 链级50%止盈 · IBKR</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
@@ -124,21 +124,12 @@ export default function Home() {
               </span>
             )}
             <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="rounded border-slate-600"
-              />
+              <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} className="rounded border-slate-600" />
               <span className={autoRefresh ? "text-sky-300" : "text-slate-500"}>自动刷新 2分钟</span>
             </label>
-            <button
-              onClick={() => fetchScan({ silent: hasData.current })}
-              disabled={loading || refreshing}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading || refreshing ? "animate-spin" : ""}`} />
-              刷新
+            <button onClick={() => fetchScan({ silent: hasData.current })} disabled={loading || refreshing}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50">
+              <RefreshCw className={`w-4 h-4 ${loading || refreshing ? "animate-spin" : ""}`} /> 刷新
             </button>
           </div>
         </div>
@@ -160,14 +151,12 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {usingFallback && (
           <div className="bg-amber-950/40 border border-amber-800/60 text-amber-200 rounded-xl px-4 py-3 text-sm">
-            行情可能使用缓存价；IBKR 持仓为快照。点击「刷新」会重拉行情与评分。
+            行情可能使用缓存价；IBKR 为快照。主止盈 = 展期链累计净权利金的 50%。
           </div>
         )}
         {error && <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">错误: {error}</div>}
         {loading && !hasData.current && (
-          <div className="flex justify-center py-20 text-slate-400 gap-3">
-            <RefreshCw className="w-6 h-6 animate-spin" /> 加载中...
-          </div>
+          <div className="flex justify-center py-20 text-slate-400 gap-3"><RefreshCw className="w-6 h-6 animate-spin" /> 加载中...</div>
         )}
 
         {(!loading || hasData.current) && !error && (
@@ -229,7 +218,7 @@ export default function Home() {
               <section className="space-y-4">
                 <h2 className="text-lg font-semibold">第五层：组合（IBKR 快照）</h2>
                 <p className="text-xs text-slate-500">
-                  快照：{ibkr.snapshotAt ? new Date(ibkr.snapshotAt).toLocaleString("zh-CN") : "—"} · 更新持仓请在对话中说「更新持仓」
+                  快照：{ibkr.snapshotAt ? new Date(ibkr.snapshotAt).toLocaleString("zh-CN") : "—"} · 主止盈 = 链累计净权利金 50%
                 </p>
 
                 <div className="grid sm:grid-cols-4 gap-3">
@@ -258,11 +247,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Stocks */}
                 <h3 className="font-semibold text-slate-300 pt-2">股票持仓</h3>
-                {(!ibkr.stocks || ibkr.stocks.length === 0) && (
-                  <div className="text-slate-500 text-sm">无股票持仓</div>
-                )}
                 {ibkr.stocks?.map((s: any) => (
                   <div key={s.symbol + String(s.qty)} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm items-center">
                     <div className="font-bold min-w-[70px]">{s.symbol}</div>
@@ -270,44 +255,45 @@ export default function Home() {
                     <div>成本 ${Number(s.avg).toFixed(2)}</div>
                     <div>现价 ${Number(s.price).toFixed(2)}</div>
                     <div>市值 ${Number(s.value).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                    <div className={Number(s.pnl) >= 0 ? "text-emerald-400" : "text-red-400"}>
-                      浮盈 ${Number(s.pnl).toFixed(0)}
-                    </div>
-                    {s.poolTier && <span className="text-xs text-slate-500">{s.poolTier}</span>}
+                    <div className={Number(s.pnl) >= 0 ? "text-emerald-400" : "text-red-400"}>浮盈 ${Number(s.pnl).toFixed(0)}</div>
                   </div>
                 ))}
 
-                {/* Short Puts */}
-                <h3 className="font-semibold text-slate-300 pt-2">空头 Put（CSP）</h3>
-                {(!ibkr.shortPuts || ibkr.shortPuts.length === 0) && (
-                  <div className="text-slate-500 text-sm">无空头 Put</div>
-                )}
+                <h3 className="font-semibold text-slate-300 pt-2">空头 Put（链级止盈）</h3>
                 {ibkr.shortPuts?.map((p: any) => (
-                  <div key={p.description} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm items-center">
-                    <div className="font-bold">{p.underlying} {p.strike}P</div>
-                    <div className="text-slate-400">{p.expiry} · DTE {p.dte}</div>
-                    <div>入场 {Number(p.entryPremium).toFixed(2)} → 现价 {Number(p.currentPremium).toFixed(2)}</div>
-                    <div className={Number(p.unrealizedPnl) >= 0 ? "text-emerald-400" : "text-red-400"}>
-                      浮盈 ${Number(p.unrealizedPnl || 0).toFixed(0)} ({((p.profitPctOfCredit || 0) * 100).toFixed(0)}%)
+                  <div key={p.description} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-sm">
+                    <div className="flex flex-wrap gap-4 items-center">
+                      <div className="font-bold">{p.underlying} {p.strike}P</div>
+                      <div className="text-slate-400">{p.expiry} · DTE {p.dte}</div>
+                      <div>入场 {Number(p.entryPremium).toFixed(2)} → 现价 {Number(p.currentPremium).toFixed(2)}</div>
+                      <div className={Number(p.unrealizedPnl) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                        单腿 ${Number(p.unrealizedPnl || 0).toFixed(0)} ({((p.profitPctOfCredit || 0) * 100).toFixed(0)}%)
+                      </div>
                     </div>
-                    {p.takeProfitHit && <span className="text-emerald-300 text-xs">已达50%止盈</span>}
-                    {p.poolTier && <span className="text-xs text-slate-500">{p.poolTier}</span>}
+                    {p.chain && (
+                      <div className="text-xs text-slate-400 border-t border-slate-800 pt-2 space-y-1">
+                        <div>链净权利金 ${Number(p.chain.chainNetCreditUsd).toFixed(0)} · 历史亏 ${Number(p.chain.priorRealizedLossUsd).toFixed(0)}</div>
+                        <div className="text-sky-300">
+                          链50%目标平仓 ≤ <strong>${Number(p.chain.targetClosePrice).toFixed(2)}</strong>
+                          {" "}· 现价平链利润 ${Number(p.chain.chainPnlIfCloseNowUsd).toFixed(0)}
+                          （{(Number(p.chain.chainProfitPctIfCloseNow) * 100).toFixed(0)}%）
+                          {" "}· 进度 {(Number(p.chain.progressToTarget) * 100).toFixed(0)}%
+                        </div>
+                        {p.chain.takeProfitHit
+                          ? <span className="text-emerald-300">已达链级止盈</span>
+                          : <span className="text-amber-300">未达链级止盈 — 继续持有</span>}
+                      </div>
+                    )}
                   </div>
                 ))}
 
-                {/* Covered Calls */}
                 <h3 className="font-semibold text-slate-300 pt-2">备兑 Call</h3>
-                {(!ibkr.coveredCalls || ibkr.coveredCalls.length === 0) && (
-                  <div className="text-slate-500 text-sm">无备兑 Call</div>
-                )}
                 {ibkr.coveredCalls?.map((c: any) => (
                   <div key={c.description || c.underlying + c.strike} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm items-center">
                     <div className="font-bold">{c.underlying} {c.strike}C</div>
                     <div className="text-slate-400">{c.expiry}</div>
                     <div>入场 {Number(c.entryPremium).toFixed(2)} → 现价 {Number(c.currentPremium).toFixed(2)}</div>
-                    <div className={Number(c.unrealizedPnl) >= 0 ? "text-emerald-400" : "text-red-400"}>
-                      浮盈 ${Number(c.unrealizedPnl || 0).toFixed(0)}
-                    </div>
+                    <div className={Number(c.unrealizedPnl) >= 0 ? "text-emerald-400" : "text-red-400"}>浮盈 ${Number(c.unrealizedPnl || 0).toFixed(0)}</div>
                   </div>
                 ))}
               </section>
@@ -315,7 +301,7 @@ export default function Home() {
 
             {tab === "roll" && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">第六层：Roll Scanner</h2>
+                <h2 className="text-lg font-semibold">第六层：Roll / 链级止盈</h2>
                 {rollResults.length === 0 && <div className="text-slate-500">无空头 Put</div>}
                 {rollResults.map((r) => (
                   <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
@@ -324,7 +310,15 @@ export default function Home() {
                       <span className="text-sm px-2 py-0.5 rounded bg-slate-800">{r.roll!.recommendation}</span>
                     </div>
                     <div className="text-sm text-sky-300">{r.recommendedAction}</div>
-                    <div className="text-xs text-slate-400">浮盈占权利金 {(r.roll!.detail.profitPctOfCredit * 100).toFixed(0)}% · DTE {r.roll!.detail.dte}</div>
+                    <div className="text-xs text-slate-400">
+                      单腿 {(r.roll!.detail.profitPctOfCredit * 100).toFixed(0)}% · DTE {r.roll!.detail.dte}
+                      {r.roll?.chain && (
+                        <> · 链目标≤${r.roll.chain.targetClosePrice.toFixed(2)} · 链进度 {(r.roll.chain.progressToTarget * 100).toFixed(0)}%</>
+                      )}
+                    </div>
+                    {r.roll?.factors?.slice(0, 4).map((f, i) => (
+                      <div key={i} className="text-xs text-slate-500">{f.label}: {f.value}</div>
+                    ))}
                   </div>
                 ))}
               </section>
@@ -365,7 +359,7 @@ export default function Home() {
                     <div>单票保证金 ≤ {playbook.accountRules?.maxSingleMarginPct}% NLV</div>
                     <div>同主题 Put ≤ {playbook.accountRules?.maxThemePuts}</div>
                     <div>周期目标权利金 ≈ ${playbook.accountRules?.targetPremiumPerCycleUsd}</div>
-                    <div>止盈：浮盈 ≥ 权利金 {playbook.accountRules?.takeProfitPctOfCredit}%</div>
+                    <div className="text-sky-300">主止盈：链累计净权利金 {playbook.accountRules?.takeProfitPctOfChainNet ?? 50}%</div>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
                     <div className="text-xs text-slate-500 mb-2">合约参数</div>
