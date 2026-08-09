@@ -1,6 +1,7 @@
 import type { MarketSnapshot } from "./market";
 import type { Theme } from "./themes";
 import { getThemes } from "./themes";
+import { computeChainTakeProfit, type ChainTakeProfit } from "./chain";
 
 export type StrategyName =
   | "Sell Put"
@@ -232,66 +233,81 @@ export type RollScore = {
     unrealizedPnl: number;
     profitPctOfCredit: number;
   };
+  chain?: ChainTakeProfit | null;
 };
 
-/** Layer 6: Roll using real short-put IBKR fields */
+/** Layer 6: 主止盈 = 链累计净权利金 50% */
 export function scoreRollOpportunity(params: {
   symbol: string;
   strike: number;
   expiry: string;
   dte: number;
-  entryPremium: number; // average_price
-  currentPremium: number; // market_price
+  entryPremium: number;
+  currentPremium: number;
   unrealizedPnl: number;
   marketValue: number;
   position: number;
 }): RollScore {
-  const {
-    strike,
-    expiry,
-    dte,
-    entryPremium,
-    currentPremium,
-    unrealizedPnl,
-    position,
-  } = params;
+  const { symbol, strike, expiry, dte, entryPremium, currentPremium, unrealizedPnl, position } = params;
 
   const creditReceived = Math.abs(entryPremium) * 100 * Math.abs(position);
-  const profitPct = creditReceived > 0 ? unrealizedPnl / creditReceived : 0;
+  const legPct = creditReceived > 0 ? unrealizedPnl / creditReceived : 0;
   const remainingRatio = entryPremium > 0 ? currentPremium / entryPremium : 1;
+
+  const chain = computeChainTakeProfit({
+    underlying: symbol,
+    currentPremium,
+    position,
+  });
 
   let score = 40;
   const factors: RollScore["factors"] = [];
 
-  // 50% profit target common rule
-  if (profitPct >= 0.5) {
-    score += 30;
+  if (chain) {
     factors.push({
-      label: "浮盈/权利金",
-      value: `${(profitPct * 100).toFixed(0)}% ≥50%，可考虑获利了结或Roll收Credit`,
+      label: "链净权利金",
+      value: `$${chain.chainNetCreditUsd.toFixed(0)}（腿入场 $${chain.currentLegCreditUsd.toFixed(0)} − 历史亏 $${chain.priorRealizedLossUsd.toFixed(0)}）`,
       weight: "★★★★★",
     });
-  } else if (profitPct >= 0.3) {
-    score += 18;
     factors.push({
-      label: "浮盈/权利金",
-      value: `${(profitPct * 100).toFixed(0)}%，接近50%目标`,
-      weight: "★★★★",
-    });
-  } else if (profitPct < 0) {
-    score += 12;
-    factors.push({
-      label: "浮亏",
-      value: `$${(unrealizedPnl).toFixed(0)}，评估是否降Strike Roll`,
+      label: "链50%平仓目标",
+      value: `单价 ≤ $${chain.targetClosePrice.toFixed(2)}（目标利润 $${chain.targetProfitUsd.toFixed(0)}）`,
       weight: "★★★★★",
     });
-  } else {
     factors.push({
-      label: "浮盈/权利金",
-      value: `${(profitPct * 100).toFixed(0)}%`,
-      weight: "★★★",
+      label: "现价平仓链利润",
+      value: `$${chain.chainPnlIfCloseNowUsd.toFixed(0)}（${(chain.chainProfitPctIfCloseNow * 100).toFixed(0)}% 链净）· 进度 ${(chain.progressToTarget * 100).toFixed(0)}%`,
+      weight: "★★★★★",
     });
+
+    if (chain.takeProfitHit) {
+      score += 35;
+      factors.push({
+        label: "主止盈",
+        value: `已达链累计净权利金 50%（现价 ${currentPremium.toFixed(2)} ≤ 目标 ${chain.targetClosePrice.toFixed(2)}）`,
+        weight: "★★★★★",
+      });
+    } else if (chain.progressToTarget >= 0.7) {
+      score += 18;
+      factors.push({
+        label: "主止盈",
+        value: `接近链目标，继续持有至 ≈$${chain.targetClosePrice.toFixed(2)}`,
+        weight: "★★★★",
+      });
+    } else {
+      factors.push({
+        label: "主止盈",
+        value: `未达链 50%，勿按单腿 50% 提前止盈`,
+        weight: "★★★★",
+      });
+    }
   }
+
+  factors.push({
+    label: "单腿参考",
+    value: `浮盈/本腿权利金 ${(legPct * 100).toFixed(0)}%（仅参考，非主止盈）`,
+    weight: "★★",
+  });
 
   factors.push({
     label: "权利金剩余",
@@ -300,13 +316,13 @@ export function scoreRollOpportunity(params: {
   });
 
   if (dte < 30) {
-    score += 20;
-    factors.push({ label: "DTE", value: `${dte}天 <30，优先Roll延长期限`, weight: "★★★★" });
+    score += 15;
+    factors.push({ label: "DTE", value: `${dte}天 <30，评估 Roll 或持有到期`, weight: "★★★★" });
   } else if (dte < 60) {
-    score += 10;
+    score += 8;
     factors.push({ label: "DTE", value: `${dte}天`, weight: "★★★" });
   } else {
-    score += 5;
+    score += 4;
     factors.push({ label: "DTE", value: `${dte}天仍较远`, weight: "★★★" });
   }
 
@@ -316,12 +332,12 @@ export function scoreRollOpportunity(params: {
     weight: "★★★★★",
   });
 
-  // Prefer manage when >50% profit
   score = Math.max(0, Math.min(100, score));
   const stars = score >= 85 ? 5 : score >= 70 ? 4 : score >= 55 ? 3 : score >= 40 ? 2 : 1;
 
   let recommendation: RollScore["recommendation"] = "观察";
-  if (profitPct >= 0.5) recommendation = "获利了结";
+  if (chain?.takeProfitHit) recommendation = "获利了结";
+  else if (!chain && legPct >= 0.5) recommendation = "获利了结"; // 无链条数据时退回单腿
   else if (score >= 75) recommendation = "Roll";
   else if (score < 45) recommendation = "不处理";
 
@@ -337,8 +353,9 @@ export function scoreRollOpportunity(params: {
       entryPremium,
       currentPremium,
       unrealizedPnl,
-      profitPctOfCredit: profitPct,
+      profitPctOfCredit: legPct,
     },
+    chain,
   };
 }
 
