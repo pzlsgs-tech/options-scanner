@@ -1,32 +1,28 @@
 /**
  * Options Scanner Pro — CSP 筛选原则（交易实践总结）
- * 来源：账户节奏 + 持仓管理 + 核心/卫星池讨论
  */
 
 export type PoolTier = "core" | "satellite" | "caution" | "standard";
 
-/** 账户与仓位纪律 */
 export const ACCOUNT_RULES = {
-  /** 大约每 N 天只新开 1–2 个 CSP */
   cycleDays: 35,
   maxNewCspPerCycle: 2,
-  /** 现金占 NLV */
   minCashPct: 40,
-  /** 单票保证金占 NLV */
   maxSingleMarginPct: 15,
-  /** 单行业占比 */
   maxSectorPct: 30,
-  /** 同一主题空头 Put 上限 */
   maxThemePuts: 2,
-  /** 目标周期权利金收入（美元，指引不是硬指标） */
   targetPremiumPerCycleUsd: 2000,
-  /** 浮盈占已收权利金达到此比例 → 优先买回 */
-  takeProfitPctOfCredit: 50,
-  /** 可考虑提前管理的浮盈下限 */
+  /**
+   * 主止盈：展期链条「累计净权利金」的 50%
+   * （含此前腿已实现亏损，不是单腿权利金的 50%）
+   */
+  takeProfitMode: "chain_net_credit" as const,
+  takeProfitPctOfChainNet: 50,
+  /** 单腿参考（仅展示，不作主止盈） */
+  singleLegReferencePct: 50,
   earlyManagePctOfCredit: 30,
 } as const;
 
-/** 期权合约参数 */
 export const OPTION_RULES = {
   dteMin: 30,
   dteMax: 45,
@@ -34,27 +30,17 @@ export const OPTION_RULES = {
   deltaMin: 0.2,
   deltaMax: 0.3,
   deltaHardMax: 0.35,
-  /** IV Rank 优先门槛（不是唯一条件） */
   ivRankPrefer: 50,
   ivRankStrong: 60,
-  /** 年化 IV 高只是加分，不是入场硬门槛（曾讨论过勿死守 IV>80） */
   ivAnnualBonus: 70,
   minOpenInterest: 500,
   minOptionVolume: 100,
   maxBidAskPct: 5,
   minPopOtm: 65,
-  /** 财报回避：到期前 N 天内有财报则降权/跳过 */
   earningsAvoidDays: 7,
 } as const;
 
-/**
- * 池分层：质量优先，权利金其次
- * core = 愿在行权价持有 6–12 个月
- * satellite = 权利金厚才小仓
- * caution = 不作为每期收租主力
- */
 export const POOL: Record<string, PoolTier> = {
-  // A 核心 — 用户指定半导/设备/存储/服务器
   AMAT: "core",
   COHR: "core",
   MU: "core",
@@ -67,23 +53,19 @@ export const POOL: Record<string, PoolTier> = {
   TER: "core",
   INTC: "core",
   DELL: "core",
-  // A 核心 — 其他质量标的
   AVGO: "core",
   TSM: "core",
   GLW: "core",
-  // B 卫星
   ALAB: "satellite",
   LITE: "satellite",
   CRWV: "satellite",
-  // C 慎做
   RKLB: "caution",
   AAOI: "caution",
   CRDO: "caution",
   SPCX: "caution",
-  // 其他高质量流动性格
   AAPL: "core",
   MSFT: "core",
-  NVDA: "satellite", // 波动与仓位占用大
+  NVDA: "satellite",
   META: "core",
   GOOGL: "core",
   AMD: "satellite",
@@ -117,7 +99,6 @@ export const POOL_SCORE_BONUS: Record<PoolTier, number> = {
   caution: -20,
 };
 
-/** 原则文案（UI / API 展示） */
 export const PRINCIPLES = [
   {
     id: "quality_first",
@@ -137,7 +118,7 @@ export const PRINCIPLES = [
   {
     id: "theme",
     title: "同主题空头 Put ≤ 2",
-    detail: "Semi/AI 等主题严格限制；先平旧仓再开新仓。核心池多为半导相关，每期仍最多 1–2 张，勿同时铺满。",
+    detail: "Semi/AI 等主题严格限制；先平旧仓再开新仓。核心池多为半导相关，每期仍最多 1–2 张。",
   },
   {
     id: "contract",
@@ -146,18 +127,18 @@ export const PRINCIPLES = [
   },
   {
     id: "exit",
-    title: "退出",
-    detail: "浮盈 ≥ 已收权利金 50% → 优先买回；30%+ 可提前管理以释放主题额度。",
+    title: "主止盈：链累计净权利金的 50%",
+    detail:
+      "展期链条：链净权利金 = 当前腿入场权利金 − 此前腿已实现亏损。目标利润 = 链净权利金 × 50%。平仓单价使整条链最终录得该利润。单腿 50% 仅作参考，不作主止盈。",
   },
   {
     id: "pools",
     title: "核心 / 卫星 / 慎做",
     detail:
-      "核心（半导主线）：AMAT COHR MU LRCX KLAC ARM MRVL WDC STX TER INTC DELL；另含 AVGO TSM GLW 等。卫星：ALAB LITE CRWV。慎做：RKLB AAOI CRDO SPCX。",
+      "核心：AMAT COHR MU LRCX KLAC ARM MRVL WDC STX TER INTC DELL（及 AVGO TSM GLW 等）。卫星：ALAB LITE CRWV。慎做：RKLB AAOI CRDO SPCX。",
   },
 ] as const;
 
-/** 给标的打原则符合分（0–100 附加分逻辑用） */
 export function scoreAgainstPlaybook(params: {
   symbol: string;
   ivRankProxy: number;
