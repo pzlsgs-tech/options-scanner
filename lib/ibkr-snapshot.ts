@@ -4,6 +4,7 @@
  */
 
 import { ACCOUNT_RULES } from "./rules";
+import { computeChainTakeProfit } from "./chain";
 
 export type IbkrPosition = {
   symbol: string;
@@ -296,11 +297,19 @@ export function portfolioRiskFlags(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
     flags.push(`已有 ${shorts.length} 张空头 Put（科技/半导主题偏集中）`);
   }
 
-  const aboveTp = shorts.filter((p) => p.profitPctOfCredit >= ACCOUNT_RULES.takeProfitPctOfCredit / 100);
-  if (aboveTp.length > 0) {
-    flags.push(
-      `止盈提示：${aboveTp.map((p) => p.underlying).join(", ")} 浮盈≥${ACCOUNT_RULES.takeProfitPctOfCredit}% 权利金，可优先买回`
-    );
+  const chainHits: string[] = [];
+  for (const p of shorts) {
+    const chain = computeChainTakeProfit({
+      underlying: p.underlying,
+      currentPremium: p.marketPrice,
+      position: p.position,
+    });
+    if (chain?.takeProfitHit) chainHits.push(p.underlying);
+  }
+  if (chainHits.length > 0) {
+    flags.push(`链级止盈：${chainHits.join(", ")} 已达链累计净权利金 ${ACCOUNT_RULES.takeProfitPctOfChainNet}%`);
+  } else {
+    flags.push("主止盈=链累计净权利金50%：当前三张均未达链目标平仓价");
   }
 
   return { flags, limits, cashPct: balances.cashPct, nlv: balances.netLiquidation };
