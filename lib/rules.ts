@@ -54,23 +54,27 @@ export const OPTION_RULES = {
  * caution = 不作为每期收租主力
  */
 export const POOL: Record<string, PoolTier> = {
-  // A 核心 — 半导/设备/存储
+  // A 核心 — 用户指定半导/设备/存储/服务器
   AMAT: "core",
+  COHR: "core",
   MU: "core",
-  MRVL: "core",
-  AVGO: "core",
-  TSM: "core",
   LRCX: "core",
   KLAC: "core",
-  // A 核心 — 分散
-  GLW: "core",
+  ARM: "core",
+  MRVL: "core",
   WDC: "core",
+  STX: "core",
+  TER: "core",
   INTC: "core",
+  DELL: "core",
+  // A 核心 — 其他质量标的
+  AVGO: "core",
+  TSM: "core",
+  GLW: "core",
   // B 卫星
   ALAB: "satellite",
   LITE: "satellite",
   CRWV: "satellite",
-  COHR: "satellite",
   // C 慎做
   RKLB: "caution",
   AAOI: "caution",
@@ -133,7 +137,7 @@ export const PRINCIPLES = [
   {
     id: "theme",
     title: "同主题空头 Put ≤ 2",
-    detail: "Semi/AI 等主题严格限制；先平旧仓再开新仓。",
+    detail: "Semi/AI 等主题严格限制；先平旧仓再开新仓。核心池多为半导相关，每期仍最多 1–2 张，勿同时铺满。",
   },
   {
     id: "contract",
@@ -148,7 +152,8 @@ export const PRINCIPLES = [
   {
     id: "pools",
     title: "核心 / 卫星 / 慎做",
-    detail: "核心：AMAT MU MRVL AVGO TSM LRCX KLAC GLW WDC INTC 等；卫星：ALAB LITE CRWV COHR；慎做：RKLB AAOI CRDO SPCX。",
+    detail:
+      "核心（半导主线）：AMAT COHR MU LRCX KLAC ARM MRVL WDC STX TER INTC DELL；另含 AVGO TSM GLW 等。卫星：ALAB LITE CRWV。慎做：RKLB AAOI CRDO SPCX。",
   },
 ] as const;
 
