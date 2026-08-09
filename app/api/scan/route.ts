@@ -27,6 +27,7 @@ import {
   getPoolTier,
   POOL_LABELS,
 } from "@/lib/rules";
+import { computeChainTakeProfit } from "@/lib/chain";
 
 const FALLBACK_PRICES: Record<string, number> = {
   AAPL: 210, MSFT: 430, NVDA: 199, TSLA: 250, AMZN: 195, META: 530,
@@ -38,7 +39,7 @@ const FALLBACK_PRICES: Record<string, number> = {
   BABA: 90, UBER: 75, CRWD: 350, SHOP: 100, PYPL: 75, V: 290,
   MA: 520, IBKR: 88, F: 11, XLE: 90, XLF: 45, XLK: 230, GLD: 240, TLT: 90,
   COHR: 95, CRDO: 140, GDX: 74, GLW: 150, WDC: 400, MRVL: 190,
-  ALAB: 120, LITE: 80, CRWV: 70, LRCX: 260, KLAC: 900,
+  ALAB: 120, LITE: 80, CRWV: 70, LRCX: 260, KLAC: 900, STX: 100, TER: 120, DELL: 120, ARM: 150,
 };
 
 async function fetchOneChart(symbol: string): Promise<Quote | null> {
@@ -191,7 +192,9 @@ export async function GET(req: NextRequest) {
     let recommendedAction = "观望";
     if (roll) {
       if (roll.recommendation === "获利了结")
-        recommendedAction = `今天: 考虑平仓 ${meta.symbol} Put（已赚 ${(roll.detail.profitPctOfCredit * 100).toFixed(0)}%）`;
+        recommendedAction = roll.chain?.takeProfitHit
+          ? `今天: 链50%已达，可平仓 ${meta.symbol}（目标≤$${roll.chain.targetClosePrice.toFixed(2)}）`
+          : `今天: 考虑平仓 ${meta.symbol} Put（单腿 ${(roll.detail.profitPctOfCredit * 100).toFixed(0)}%）`;
       else if (roll.recommendation === "Roll") recommendedAction = `今天: Roll ${meta.symbol}`;
       else if (roll.recommendation === "观察") recommendedAction = `观察 ${meta.symbol}`;
       else recommendedAction = `不处理 ${meta.symbol}`;
@@ -245,7 +248,7 @@ export async function GET(req: NextRequest) {
       optionRules: OPTION_RULES,
       nextCycleHint:
         shortPuts.length >= ACCOUNT_RULES.maxThemePuts
-          ? `当前空头Put ${shortPuts.length} 张，建议先管理/平仓后再开新CSP（每周期最多${ACCOUNT_RULES.maxNewCspPerCycle}张）`
+          ? `当前空头Put ${shortPuts.length} 张，建议先管理/平仓后再开新CSP（每周期最多${ACCOUNT_RULES.maxNewCspPerCycle}张）。主止盈=链累计净权利金50%。`
           : `可规划下一周期 1–2 个CSP，目标权利金约 $${ACCOUNT_RULES.targetPremiumPerCycleUsd}`,
     },
     ibkr: {
@@ -263,21 +266,29 @@ export async function GET(req: NextRequest) {
         dailyPnl: s.dailyPnl,
         poolTier: getPoolTier(s.symbol),
       })),
-      shortPuts: shortPuts.map((p) => ({
-        underlying: p.underlying,
-        description: p.description,
-        strike: p.strike,
-        expiry: p.expiry,
-        dte: p.dte,
-        entryPremium: p.averagePrice,
-        currentPremium: p.marketPrice,
-        unrealizedPnl: p.unrealizedPnl,
-        dailyPnl: p.dailyPnl,
-        profitPctOfCredit: p.profitPctOfCredit,
-        marketValue: p.marketValue,
-        poolTier: getPoolTier(p.underlying),
-        takeProfitHit: p.profitPctOfCredit >= ACCOUNT_RULES.takeProfitPctOfCredit / 100,
-      })),
+      shortPuts: shortPuts.map((p) => {
+        const chain = computeChainTakeProfit({
+          underlying: p.underlying,
+          currentPremium: p.marketPrice,
+          position: p.position,
+        });
+        return {
+          underlying: p.underlying,
+          description: p.description,
+          strike: p.strike,
+          expiry: p.expiry,
+          dte: p.dte,
+          entryPremium: p.averagePrice,
+          currentPremium: p.marketPrice,
+          unrealizedPnl: p.unrealizedPnl,
+          dailyPnl: p.dailyPnl,
+          profitPctOfCredit: p.profitPctOfCredit,
+          marketValue: p.marketValue,
+          poolTier: getPoolTier(p.underlying),
+          takeProfitHit: chain ? chain.takeProfitHit : p.profitPctOfCredit >= ACCOUNT_RULES.takeProfitPctOfChainNet / 100,
+          chain,
+        };
+      }),
       coveredCalls: coveredCalls.map((c) => ({
         underlying: c.underlying || c.symbol,
         description: c.description,
@@ -305,9 +316,9 @@ export async function GET(req: NextRequest) {
       bidAsk: `<${OPTION_RULES.maxBidAskPct}%`,
       popOtm: `>${OPTION_RULES.minPopOtm}%`,
       earnings: `避开${OPTION_RULES.earningsAvoidDays}天内财报`,
-      takeProfit: `浮盈≥权利金${ACCOUNT_RULES.takeProfitPctOfCredit}%优先平仓`,
+      takeProfit: `主止盈=链累计净权利金的${ACCOUNT_RULES.takeProfitPctOfChainNet}%（非单腿）`,
     },
     results,
-    note: `Playbook已启用：质量优先、核心/卫星池、35天1–2个CSP、现金≥40%、同主题Put≤2、50%止盈。IBKR快照 ${snapshot.updatedAt}。`,
+    note: `主止盈已改为链累计净权利金50%。Playbook + IBKR快照 ${snapshot.updatedAt}。`,
   });
 }
