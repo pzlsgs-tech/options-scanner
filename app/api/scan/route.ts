@@ -23,6 +23,7 @@ import {
   ACCOUNT_RULES,
   OPTION_RULES,
   PRINCIPLES,
+  MACRO_FILTERS,
   scoreAgainstPlaybook,
   getPoolTier,
   POOL_LABELS,
@@ -246,6 +247,7 @@ export async function GET(req: NextRequest) {
       principles: PRINCIPLES,
       accountRules: ACCOUNT_RULES,
       optionRules: OPTION_RULES,
+      macroFilters: MACRO_FILTERS,
       nextCycleHint:
         shortPuts.length >= ACCOUNT_RULES.maxThemePuts
           ? `当前空头Put ${shortPuts.length} 张，建议先管理/平仓后再开新CSP（每周期最多${ACCOUNT_RULES.maxNewCspPerCycle}张）。主止盈=链累计净权利金50%。`
@@ -308,17 +310,23 @@ export async function GET(req: NextRequest) {
       limits: { ...portfolio.limits, ...ACCOUNT_RULES },
     },
     optionCriteria: {
+      philosophy: "奔着接股去，不是只赚权利金",
       dte: `${OPTION_RULES.dteMin}–${OPTION_RULES.dteMax}天（最长${OPTION_RULES.dteHardMax}）`,
       delta: `${OPTION_RULES.deltaMin}–${OPTION_RULES.deltaMax}（硬上限${OPTION_RULES.deltaHardMax}）`,
-      ivRank: `≥${OPTION_RULES.ivRankPrefer}优先，≥${OPTION_RULES.ivRankStrong}更强（非硬门槛）`,
+      ivRank: `≥${OPTION_RULES.ivRankPrefer}优先，≥${OPTION_RULES.ivRankStrong}更强；IV%ile参考≥${OPTION_RULES.ivPercentileMin}`,
       oi: `>${OPTION_RULES.minOpenInterest}`,
       volume: `>${OPTION_RULES.minOptionVolume}`,
-      bidAsk: `<${OPTION_RULES.maxBidAskPct}%`,
-      popOtm: `>${OPTION_RULES.minPopOtm}%`,
-      earnings: `避开${OPTION_RULES.earningsAvoidDays}天内财报`,
-      takeProfit: `主止盈=链累计净权利金的${ACCOUNT_RULES.takeProfitPctOfChainNet}%（非单腿）`,
+      bidAsk: `<${OPTION_RULES.maxBidAskPct}% of premium`,
+      popOtm: `>${OPTION_RULES.minPopOtm}%（胜率倾向≥${OPTION_RULES.minWinProbPct}%）`,
+      yield: `年化权利金倾向≥${OPTION_RULES.minAnnualizedYieldPct}%`,
+      earnings: `避开${OPTION_RULES.earningsAvoidDays}天内财报；不用杠杆ETF`,
+      takeProfit: `主止盈=链累计净权利金${ACCOUNT_RULES.takeProfitPctOfChainNet}%；约${ACCOUNT_RULES.earlyCloseDteThreshold}DTE且已赚${ACCOUNT_RULES.earlyClosePremiumPctNearExpiry}%可提前平`,
+      roll: "若今天不愿新开同等Put → 不为扳本而Roll",
+      macro: MACRO_FILTERS.note,
+      assignment: `单票assignment notional≤${ACCOUNT_RULES.maxSingleAssignmentNotionalPct}% NLV；按全部Put同时接股管理资金`,
     },
+    macroFilters: MACRO_FILTERS,
     results,
-    note: `主止盈已改为链累计净权利金50%。Playbook + IBKR快照 ${snapshot.updatedAt}。`,
+    note: `Sell-Put系统化原则已并入。主止盈=链累计净权利金50%。快照 ${snapshot.updatedAt}。`,
   });
 }
