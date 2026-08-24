@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
-  Search, RefreshCw, Zap, Layers, Target, Briefcase, RefreshCcw, Brain, BookOpen,
+  Search, RefreshCw, Zap, Layers, Target, Briefcase, RefreshCcw, Brain, BookOpen, History,
 } from "lucide-react";
 
 type StrategyScore = { name: string; score: number; reason: string };
@@ -27,6 +27,21 @@ type Result = {
   poolTier?: string; poolLabel?: string; playbookScore?: number; playbookNotes?: string[];
 };
 
+type HistoryEntry = {
+  id: string;
+  capturedAt: string;
+  source?: string;
+  nlv: number;
+  cash: number;
+  cashPct: number;
+  stockMv: number;
+  unrealizedPnl: number;
+  shortPuts: { underlying: string; strike: number; mark: number; unrealizedPnl: number; legPct: number }[];
+  coveredCalls?: { underlying: string; mark: number; unrealizedPnl: number }[];
+  stocks?: { symbol: string; mark: number; unrealizedPnl: number }[];
+  note?: string;
+};
+
 const TABS = [
   { id: "market", label: "1 市场", icon: Layers },
   { id: "strategy", label: "2 策略", icon: Target },
@@ -34,11 +49,75 @@ const TABS = [
   { id: "portfolio", label: "5 组合·IBKR", icon: Briefcase },
   { id: "roll", label: "6 展期", icon: RefreshCcw },
   { id: "ai", label: "7 AI评分", icon: Brain },
+  { id: "history", label: "历史", icon: History },
   { id: "rules", label: "原则", icon: BookOpen },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
 const AUTO_REFRESH_MS = 2 * 60 * 1000;
+
+/** 简易折线图（SVG，无第三方依赖） */
+function LineChart({
+  series,
+  height = 220,
+  yFormat,
+}: {
+  series: { name: string; color: string; points: { x: string; y: number }[] }[];
+  height?: number;
+  yFormat?: (v: number) => string;
+}) {
+  const width = 640;
+  const pad = { top: 16, right: 16, bottom: 36, left: 56 };
+  const innerW = width - pad.left - pad.right;
+  const innerH = height - pad.top - pad.bottom;
+
+  const allY = series.flatMap((s) => s.points.map((p) => p.y));
+  const labels = series[0]?.points.map((p) => p.x) || [];
+  const n = Math.max(labels.length, 1);
+  const minY = Math.min(...allY, 0);
+  const maxY = Math.max(...allY, 1);
+  const span = maxY - minY || 1;
+
+  const sx = (i: number) => pad.left + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW);
+  const sy = (v: number) => pad.top + innerH - ((v - minY) / span) * innerH;
+
+  const fmt = yFormat || ((v: number) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0)));
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" role="img">
+      {[0, 0.25, 0.5, 0.75, 1].map((t) => {
+        const y = pad.top + innerH * (1 - t);
+        const val = minY + span * t;
+        return (
+          <g key={t}>
+            <line x1={pad.left} x2={pad.left + innerW} y1={y} y2={y} stroke="#334155" strokeWidth={1} />
+            <text x={pad.left - 8} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize={10}>
+              {fmt(val)}
+            </text>
+          </g>
+        );
+      })}
+      {labels.map((lab, i) => (
+        <text key={lab + i} x={sx(i)} y={height - 10} textAnchor="middle" fill="#94a3b8" fontSize={10}>
+          {lab.slice(5)}
+        </text>
+      ))}
+      {series.map((s) => {
+        const d = s.points
+          .map((p, i) => `${i === 0 ? "M" : "L"} ${sx(i).toFixed(1)} ${sy(p.y).toFixed(1)}`)
+          .join(" ");
+        return (
+          <g key={s.name}>
+            <path d={d} fill="none" stroke={s.color} strokeWidth={2.5} strokeLinejoin="round" />
+            {s.points.map((p, i) => (
+              <circle key={i} cx={sx(i)} cy={sy(p.y)} r={3.5} fill={s.color} />
+            ))}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
 
 export default function Home() {
   const [results, setResults] = useState<Result[]>([]);
@@ -54,7 +133,8 @@ export default function Home() {
   const [ibkr, setIbkr] = useState<any>(null);
   const [playbook, setPlaybook] = useState<any>(null);
   const [optionCriteria, setOptionCriteria] = useState<any>(null);
-  const [tab, setTab] = useState<TabId>("portfolio");
+  const [history, setHistory] = useState<{ count: number; entries: HistoryEntry[]; summary: any[] } | null>(null);
+  const [tab, setTab] = useState<TabId>("history");
   const [minScore, setMinScore] = useState(50);
   const [search, setSearch] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -79,6 +159,7 @@ export default function Home() {
       setIbkr(data.ibkr);
       setPlaybook(data.playbook);
       setOptionCriteria(data.optionCriteria);
+      setHistory(data.history || null);
       hasData.current = true;
     } catch (e: any) {
       setError(e.message || "扫描失败");
@@ -103,6 +184,43 @@ export default function Home() {
   });
   const rollResults = results.filter((r) => r.roll);
 
+  /** 历史按时间正序（旧→新）画图 */
+  const chrono = useMemo(() => {
+    const entries = history?.entries ? [...history.entries] : [];
+    return entries.reverse();
+  }, [history]);
+
+  const nlvSeries = useMemo(
+    () => [{
+      name: "NLV",
+      color: "#38bdf8",
+      points: chrono.map((e) => ({ x: e.id, y: e.nlv })),
+    }],
+    [chrono]
+  );
+
+  const pnlSeries = useMemo(
+    () => [{
+      name: "未实现盈亏",
+      color: "#34d399",
+      points: chrono.map((e) => ({ x: e.id, y: e.unrealizedPnl })),
+    }],
+    [chrono]
+  );
+
+  const putMarkSeries = useMemo(() => {
+    const names = ["AMAT", "COHR", "CRDO"] as const;
+    const colors = { AMAT: "#f472b6", COHR: "#a78bfa", CRDO: "#fbbf24" };
+    return names.map((u) => ({
+      name: u,
+      color: colors[u],
+      points: chrono.map((e) => {
+        const p = e.shortPuts?.find((x) => x.underlying === u);
+        return { x: e.id, y: p?.mark ?? 0 };
+      }),
+    }));
+  }, [chrono]);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-20">
@@ -113,7 +231,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Options Scanner Pro</h1>
-              <p className="text-xs text-slate-400">六层筛选 · 链级50%止盈 · IBKR</p>
+              <p className="text-xs text-slate-400">六层筛选 · 链级50% · 历史复盘</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
@@ -151,7 +269,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {usingFallback && (
           <div className="bg-amber-950/40 border border-amber-800/60 text-amber-200 rounded-xl px-4 py-3 text-sm">
-            行情可能使用缓存价；IBKR 为快照。主止盈 = 展期链累计净权利金的 50%。
+            行情可能使用缓存价；IBKR 为快照。历史在对话「更新持仓」时追加。
           </div>
         )}
         {error && <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">错误: {error}</div>}
@@ -220,7 +338,6 @@ export default function Home() {
                 <p className="text-xs text-slate-500">
                   快照：{ibkr.snapshotAt ? new Date(ibkr.snapshotAt).toLocaleString("zh-CN") : "—"} · 主止盈 = 链累计净权利金 50%
                 </p>
-
                 <div className="grid sm:grid-cols-4 gap-3">
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">NLV</div>
@@ -240,13 +357,11 @@ export default function Home() {
                     <div className={`text-xl font-bold ${(ibkr.balances?.unrealizedPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>${ibkr.balances?.unrealizedPnl?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                   </div>
                 </div>
-
                 {ibkr.riskFlags?.length > 0 && (
                   <div className="bg-amber-950/40 border border-amber-800 rounded-xl p-4 space-y-1">
                     {ibkr.riskFlags.map((w: string, i: number) => <div key={i} className="text-amber-200 text-sm">⚠ {w}</div>)}
                   </div>
                 )}
-
                 <h3 className="font-semibold text-slate-300 pt-2">股票持仓</h3>
                 {ibkr.stocks?.map((s: any) => (
                   <div key={s.symbol + String(s.qty)} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm items-center">
@@ -254,11 +369,9 @@ export default function Home() {
                     <div className="text-slate-400">{s.qty} 股</div>
                     <div>成本 ${Number(s.avg).toFixed(2)}</div>
                     <div>现价 ${Number(s.price).toFixed(2)}</div>
-                    <div>市值 ${Number(s.value).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                     <div className={Number(s.pnl) >= 0 ? "text-emerald-400" : "text-red-400"}>浮盈 ${Number(s.pnl).toFixed(0)}</div>
                   </div>
                 ))}
-
                 <h3 className="font-semibold text-slate-300 pt-2">空头 Put（链级止盈）</h3>
                 {ibkr.shortPuts?.map((p: any) => (
                   <div key={p.description} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-sm">
@@ -272,12 +385,9 @@ export default function Home() {
                     </div>
                     {p.chain && (
                       <div className="text-xs text-slate-400 border-t border-slate-800 pt-2 space-y-1">
-                        <div>链净权利金 ${Number(p.chain.chainNetCreditUsd).toFixed(0)} · 历史亏 ${Number(p.chain.priorRealizedLossUsd).toFixed(0)}</div>
                         <div className="text-sky-300">
-                          链50%目标平仓 ≤ <strong>${Number(p.chain.targetClosePrice).toFixed(2)}</strong>
+                          链50%目标 ≤ <strong>${Number(p.chain.targetClosePrice).toFixed(2)}</strong>
                           {" "}· 现价平链利润 ${Number(p.chain.chainPnlIfCloseNowUsd).toFixed(0)}
-                          （{(Number(p.chain.chainProfitPctIfCloseNow) * 100).toFixed(0)}%）
-                          {" "}· 进度 {(Number(p.chain.progressToTarget) * 100).toFixed(0)}%
                         </div>
                         {p.chain.takeProfitHit
                           ? <span className="text-emerald-300">已达链级止盈</span>
@@ -286,7 +396,6 @@ export default function Home() {
                     )}
                   </div>
                 ))}
-
                 <h3 className="font-semibold text-slate-300 pt-2">备兑 Call</h3>
                 {ibkr.coveredCalls?.map((c: any) => (
                   <div key={c.description || c.underlying + c.strike} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4 text-sm items-center">
@@ -310,15 +419,6 @@ export default function Home() {
                       <span className="text-sm px-2 py-0.5 rounded bg-slate-800">{r.roll!.recommendation}</span>
                     </div>
                     <div className="text-sm text-sky-300">{r.recommendedAction}</div>
-                    <div className="text-xs text-slate-400">
-                      单腿 {(r.roll!.detail.profitPctOfCredit * 100).toFixed(0)}% · DTE {r.roll!.detail.dte}
-                      {r.roll?.chain && (
-                        <> · 链目标≤${r.roll.chain.targetClosePrice.toFixed(2)} · 链进度 {(r.roll.chain.progressToTarget * 100).toFixed(0)}%</>
-                      )}
-                    </div>
-                    {r.roll?.factors?.slice(0, 4).map((f, i) => (
-                      <div key={i} className="text-xs text-slate-500">{f.label}: {f.value}</div>
-                    ))}
                   </div>
                 ))}
               </section>
@@ -330,10 +430,117 @@ export default function Home() {
                 {filtered.slice(0, 25).map((r) => (
                   <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center gap-4">
                     <div className={`text-2xl font-bold w-14 text-center ${r.aiScore >= 80 ? "text-emerald-400" : r.aiScore >= 65 ? "text-sky-400" : "text-slate-400"}`}>{r.aiScore}</div>
-                    <div className="font-bold min-w-[70px]">{r.symbol}<div className="text-xs text-slate-500">{r.poolLabel}</div></div>
+                    <div className="font-bold min-w-[70px]">{r.symbol}</div>
                     <div className="text-sm text-sky-300 flex-1">{r.recommendedAction}</div>
                   </div>
                 ))}
+              </section>
+            )}
+
+            {tab === "history" && (
+              <section className="space-y-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <History className="w-5 h-5 text-sky-400" /> 持仓历史复盘
+                </h2>
+                <p className="text-xs text-slate-500">
+                  共 {history?.count ?? 0} 条 · 在对话中说「更新持仓」会追加最新快照 · 曲线按时间从左（旧）到右（新）
+                </p>
+
+                {chrono.length === 0 && <div className="text-slate-500">暂无历史数据</div>}
+
+                {chrono.length > 0 && (
+                  <>
+                    <div className="grid lg:grid-cols-2 gap-4">
+                      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="text-sm font-medium text-sky-300 mb-2">NLV 曲线</div>
+                        <LineChart series={nlvSeries} yFormat={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                        <div className="flex gap-3 text-xs text-slate-500 mt-1"><span className="text-sky-400">● NLV</span></div>
+                      </div>
+                      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="text-sm font-medium text-emerald-300 mb-2">未实现盈亏</div>
+                        <LineChart series={pnlSeries} yFormat={(v) => `$${(v / 1000).toFixed(1)}k`} />
+                        <div className="flex gap-3 text-xs text-slate-500 mt-1"><span className="text-emerald-400">● 浮盈</span></div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                      <div className="text-sm font-medium text-slate-300 mb-2">空头 Put 现价（mark）走势</div>
+                      <LineChart series={putMarkSeries} yFormat={(v) => v.toFixed(0)} />
+                      <div className="flex flex-wrap gap-4 text-xs mt-2">
+                        <span className="text-pink-400">● AMAT</span>
+                        <span className="text-violet-400">● COHR</span>
+                        <span className="text-amber-400">● CRDO</span>
+                        <span className="text-slate-500">（越低越接近链级止盈目标）</span>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-slate-800">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-900 text-slate-400 text-xs uppercase">
+                          <tr>
+                            <th className="px-3 py-2">日期</th>
+                            <th className="px-3 py-2">NLV</th>
+                            <th className="px-3 py-2">现金%</th>
+                            <th className="px-3 py-2">浮盈</th>
+                            <th className="px-3 py-2">AMAT</th>
+                            <th className="px-3 py-2">COHR</th>
+                            <th className="px-3 py-2">CRDO</th>
+                            <th className="px-3 py-2">备注</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...chrono].reverse().map((e, idx, arr) => {
+                            const prev = arr[idx + 1];
+                            const dNlv = prev ? e.nlv - prev.nlv : 0;
+                            const put = (u: string) => e.shortPuts?.find((p) => p.underlying === u);
+                            return (
+                              <tr key={e.id} className="border-t border-slate-800 hover:bg-slate-900/80">
+                                <td className="px-3 py-2 font-medium whitespace-nowrap">{e.id}</td>
+                                <td className="px-3 py-2">
+                                  ${e.nlv.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                  {prev && (
+                                    <span className={`ml-1 text-xs ${dNlv >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                      {dNlv >= 0 ? "+" : ""}{(dNlv / 1000).toFixed(1)}k
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2">{e.cashPct.toFixed(1)}%</td>
+                                <td className={`px-3 py-2 ${e.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                  ${e.unrealizedPnl.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {put("AMAT") ? (
+                                    <>
+                                      {put("AMAT")!.mark.toFixed(1)}
+                                      <span className="text-xs text-slate-500 ml-1">{(put("AMAT")!.legPct * 100).toFixed(0)}%</span>
+                                    </>
+                                  ) : "—"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {put("COHR") ? (
+                                    <>
+                                      {put("COHR")!.mark.toFixed(1)}
+                                      <span className="text-xs text-slate-500 ml-1">{(put("COHR")!.legPct * 100).toFixed(0)}%</span>
+                                    </>
+                                  ) : "—"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {put("CRDO") ? (
+                                    <>
+                                      {put("CRDO")!.mark.toFixed(1)}
+                                      <span className="text-xs text-slate-500 ml-1">{(put("CRDO")!.legPct * 100).toFixed(0)}%</span>
+                                    </>
+                                  ) : "—"}
+                                </td>
+                                <td className="px-3 py-2 text-xs text-slate-500 max-w-[200px]">{e.note || "—"}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </section>
             )}
 
@@ -356,9 +563,6 @@ export default function Home() {
                     <div className="text-xs text-slate-500 mb-2">账户纪律</div>
                     <div>周期：约每 {playbook.accountRules?.cycleDays} 天，最多 {playbook.accountRules?.maxNewCspPerCycle} 个 CSP</div>
                     <div>现金 ≥ {playbook.accountRules?.minCashPct}% NLV</div>
-                    <div>单票保证金 ≤ {playbook.accountRules?.maxSingleMarginPct}% NLV</div>
-                    <div>同主题 Put ≤ {playbook.accountRules?.maxThemePuts}</div>
-                    <div>周期目标权利金 ≈ ${playbook.accountRules?.targetPremiumPerCycleUsd}</div>
                     <div className="text-sky-300">主止盈：链累计净权利金 {playbook.accountRules?.takeProfitPctOfChainNet ?? 50}%</div>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
