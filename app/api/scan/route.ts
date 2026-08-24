@@ -19,6 +19,7 @@ import {
   getStockPositions,
   portfolioRiskFlags,
 } from "@/lib/ibkr-snapshot";
+import { IBKR_HISTORY, getHistorySummary } from "@/lib/ibkr-history";
 import {
   ACCOUNT_RULES,
   OPTION_RULES,
@@ -326,7 +327,12 @@ export async function GET(req: NextRequest) {
       assignment: `单票assignment notional≤${ACCOUNT_RULES.maxSingleAssignmentNotionalPct}% NLV；按全部Put同时接股管理资金`,
     },
     macroFilters: MACRO_FILTERS,
+    history: {
+      count: IBKR_HISTORY.length,
+      summary: getHistorySummary(),
+      entries: IBKR_HISTORY,
+    },
     results,
-    note: `Sell-Put系统化原则已并入。主止盈=链累计净权利金50%。快照 ${snapshot.updatedAt}。`,
+    note: `持仓历史 ${IBKR_HISTORY.length} 条已保存。主止盈=链累计净权利金50%。快照 ${snapshot.updatedAt}。`,
   });
 }
