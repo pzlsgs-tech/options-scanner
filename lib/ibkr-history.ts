@@ -47,6 +47,33 @@ export type IbkrHistoryEntry = {
 /** 新→旧。每次更新持仓插到头部。 */
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-08-26",
+    capturedAt: "2026-08-26T04:40:00.000Z",
+    source: "ibkr_live",
+    nlv: 181277.0,
+    cash: 120463.29,
+    cashPct: 66.5,
+    stockMv: 83739.12,
+    unrealizedPnl: 18764.78,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 90.8, unrealizedPnl: 3896.15, legPct: 0.3 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 56.9, unrealizedPnl: 5096.75, legPct: 0.472 },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 15.63, unrealizedPnl: 2645.93, legPct: 0.629 },
+    ],
+    coveredCalls: [
+      { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 18.56, unrealizedPnl: -1650.8 },
+      { underlying: "MCD", strike: 285, expiry: "2026-09-04", entry: 3.49, mark: 0.19, unrealizedPnl: 330.26 },
+    ],
+    stocks: [
+      { symbol: "GDX", qty: 100, avg: 87.31, mark: 105.07, unrealizedPnl: 1776.15 },
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 268.73, unrealizedPnl: -1157.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 213.83, unrealizedPnl: 1652.53 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.16, unrealizedPnl: 2067.66 },
+      { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 98.73, unrealizedPnl: 147.78 },
+    ],
+    note: "相对08-24：NLV回升；三张Put mark回落（尤其COHR/CRDO）；GDX 87C仍深实值",
+  },
+  {
     id: "2026-08-24",
     capturedAt: "2026-08-24T14:30:00.000Z",
     source: "ibkr_live",
