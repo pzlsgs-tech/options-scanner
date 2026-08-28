@@ -287,6 +287,9 @@ export async function GET(req: NextRequest) {
           dailyPnl: p.dailyPnl,
           profitPctOfCredit: p.profitPctOfCredit,
           marketValue: p.marketValue,
+          delta: p.delta ?? null,
+          iv: p.iv ?? null,
+          spot: p.spot ?? null,
           poolTier: getPoolTier(p.underlying),
           takeProfitHit: chain ? chain.takeProfitHit : p.profitPctOfCredit >= ACCOUNT_RULES.takeProfitPctOfChainNet / 100,
           chain,
@@ -333,6 +336,6 @@ export async function GET(req: NextRequest) {
       entries: IBKR_HISTORY,
     },
     results,
-    note: `持仓历史 ${IBKR_HISTORY.length} 条已保存。主止盈=链累计净权利金50%。快照 ${snapshot.updatedAt}。`,
+    note: `持仓历史 ${IBKR_HISTORY.length} 条（含 Delta/IV）。主止盈=链累计净权利金50%。快照 ${snapshot.updatedAt}。`,
   });
 }
