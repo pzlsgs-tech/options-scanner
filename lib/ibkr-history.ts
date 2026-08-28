@@ -1,5 +1,6 @@
 /**
  * IBKR 持仓快照历史 — 每次「更新持仓」追加一条，便于复盘
+ * shortPuts 含 mark / legPct / delta / iv（delta·iv 为 BS 估算或行情，历史旧条可能为空）
  */
 
 export type HistoryShortPut = {
@@ -10,6 +11,11 @@ export type HistoryShortPut = {
   mark: number;
   unrealizedPnl: number;
   legPct: number;
+  /** 卖方视角 Put Delta，约 -1～0 */
+  delta?: number | null;
+  /** 年化隐含波动率，如 0.59 = 59% */
+  iv?: number | null;
+  spot?: number | null;
 };
 
 export type HistoryCoveredCall = {
@@ -19,6 +25,8 @@ export type HistoryCoveredCall = {
   entry: number;
   mark: number;
   unrealizedPnl: number;
+  delta?: number | null;
+  iv?: number | null;
 };
 
 export type HistoryStock = {
@@ -47,6 +55,66 @@ export type IbkrHistoryEntry = {
 /** 新→旧。每次更新持仓插到头部。 */
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-08-28",
+    capturedAt: "2026-08-28T03:10:00.000Z",
+    source: "ibkr_live",
+    nlv: 182323.64,
+    cash: 120492.52,
+    cashPct: 66.1,
+    stockMv: 83322.0,
+    unrealizedPnl: 19753.26,
+    shortPuts: [
+      {
+        underlying: "AMAT",
+        strike: 540,
+        expiry: "2026-11-20",
+        entry: 129.76,
+        mark: 87.39,
+        unrealizedPnl: 4237.17,
+        legPct: 0.326,
+        delta: -0.587,
+        iv: 0.59,
+        spot: 482.36,
+      },
+      {
+        underlying: "COHR",
+        strike: 310,
+        expiry: "2026-11-20",
+        entry: 107.87,
+        mark: 50.99,
+        unrealizedPnl: 5687.25,
+        legPct: 0.527,
+        delta: -0.466,
+        iv: 0.781,
+        spot: 295.39,
+      },
+      {
+        underlying: "CRDO",
+        strike: 180,
+        expiry: "2026-11-20",
+        entry: 42.09,
+        mark: 11.91,
+        unrealizedPnl: 3017.8,
+        legPct: 0.717,
+        delta: -0.178,
+        iv: 0.867,
+        spot: 240.24,
+      },
+    ],
+    coveredCalls: [
+      { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 16.94, unrealizedPnl: -1488.55 },
+      { underlying: "MCD", strike: 285, expiry: "2026-09-04", entry: 3.49, mark: 0.05, unrealizedPnl: 343.75 },
+    ],
+    stocks: [
+      { symbol: "GDX", qty: 100, avg: 87.31, mark: 103.18, unrealizedPnl: 1587.15 },
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 261.51, unrealizedPnl: -1879.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 226.67, unrealizedPnl: 2166.13 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.76, unrealizedPnl: 2127.66 },
+      { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 96.55, unrealizedPnl: 134.13 },
+    ],
+    note: "首次记录 Delta/IV（BS估算）；三张Put mark继续下行，CRDO单腿已~72%",
+  },
+  {
     id: "2026-08-26",
     capturedAt: "2026-08-26T04:40:00.000Z",
     source: "ibkr_live",
@@ -56,9 +124,9 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     stockMv: 83739.12,
     unrealizedPnl: 18764.78,
     shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 90.8, unrealizedPnl: 3896.15, legPct: 0.3 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 56.9, unrealizedPnl: 5096.75, legPct: 0.472 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 15.63, unrealizedPnl: 2645.93, legPct: 0.629 },
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 90.8, unrealizedPnl: 3896.15, legPct: 0.3, delta: null, iv: null },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 56.9, unrealizedPnl: 5096.75, legPct: 0.472, delta: null, iv: null },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 15.63, unrealizedPnl: 2645.93, legPct: 0.629, delta: null, iv: null },
     ],
     coveredCalls: [
       { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 18.56, unrealizedPnl: -1650.8 },
@@ -71,7 +139,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.16, unrealizedPnl: 2067.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 98.73, unrealizedPnl: 147.78 },
     ],
-    note: "相对08-24：NLV回升；三张Put mark回落（尤其COHR/CRDO）；GDX 87C仍深实值",
+    note: "相对08-24：NLV回升；三张Put mark回落",
   },
   {
     id: "2026-08-24",
@@ -83,9 +151,9 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     stockMv: 83603.42,
     unrealizedPnl: 16678.16,
     shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 92.57, unrealizedPnl: 3718.49, legPct: 0.287 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 67.19, unrealizedPnl: 4067.84, legPct: 0.377 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 18.12, unrealizedPnl: 2396.75, legPct: 0.57 },
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 92.57, unrealizedPnl: 3718.49, legPct: 0.287, delta: null, iv: null },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 67.19, unrealizedPnl: 4067.84, legPct: 0.377, delta: null, iv: null },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 18.12, unrealizedPnl: 2396.75, legPct: 0.57, delta: null, iv: null },
     ],
     coveredCalls: [
       { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 17.17, unrealizedPnl: -1511.97 },
@@ -98,7 +166,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.2, unrealizedPnl: 1971.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 94.18, unrealizedPnl: 119.32 },
     ],
-    note: "Put 权利金回升（浮盈收窄）；GDX 继续走强，87C 更深实值",
+    note: "Put 权利金回升；GDX 87C 更深实值",
   },
   {
     id: "2026-08-21",
@@ -110,9 +178,9 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     stockMv: 83185.32,
     unrealizedPnl: 19400.8,
     shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 84.86, unrealizedPnl: 4490.41, legPct: 0.346 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 56.04, unrealizedPnl: 5182.72, legPct: 0.48 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 16.28, unrealizedPnl: 2580.49, legPct: 0.613 },
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 84.86, unrealizedPnl: 4490.41, legPct: 0.346, delta: null, iv: null },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 56.04, unrealizedPnl: 5182.72, legPct: 0.48, delta: null, iv: null },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 16.28, unrealizedPnl: 2580.49, legPct: 0.613, delta: null, iv: null },
     ],
     coveredCalls: [
       { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 13.46, unrealizedPnl: -1140.6 },
@@ -125,7 +193,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.5, unrealizedPnl: 2001.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 89.91, unrealizedPnl: 92.55 },
     ],
-    note: "CRDO 最接近链目标；用户决定不留黄金",
+    note: "用户决定不留黄金",
   },
   {
     id: "2026-08-11",
@@ -137,9 +205,9 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     stockMv: 83449.09,
     unrealizedPnl: 19914.07,
     shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 85.42, unrealizedPnl: 4433.85, legPct: 0.342 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 53.5, unrealizedPnl: 5436.97, legPct: 0.504 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 19.63, unrealizedPnl: 2245.66, legPct: 0.534 },
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 85.42, unrealizedPnl: 4433.85, legPct: 0.342, delta: null, iv: null },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 53.5, unrealizedPnl: 5436.97, legPct: 0.504, delta: null, iv: null },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 19.63, unrealizedPnl: 2245.66, legPct: 0.534, delta: null, iv: null },
     ],
     coveredCalls: [
       { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 6.43, unrealizedPnl: -438.11 },
@@ -163,9 +231,19 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     stockMv: 83723.49,
     unrealizedPnl: 22824.93,
     shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 81.48, unrealizedPnl: 4828.39, legPct: 0.372 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 39.96, unrealizedPnl: 6790.35, legPct: 0.63 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 19.18, unrealizedPnl: 2291.11, legPct: 0.544 },
+      {
+        underlying: "AMAT",
+        strike: 540,
+        expiry: "2026-11-20",
+        entry: 129.76,
+        mark: 81.48,
+        unrealizedPnl: 4828.39,
+        legPct: 0.372,
+        delta: -0.469,
+        iv: 0.799,
+      },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 39.96, unrealizedPnl: 6790.35, legPct: 0.63, delta: null, iv: null },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 19.18, unrealizedPnl: 2291.11, legPct: 0.544, delta: null, iv: null },
     ],
     coveredCalls: [
       { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 5.95, unrealizedPnl: -389.83 },
@@ -178,7 +256,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.64, unrealizedPnl: 2115.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 87.75, unrealizedPnl: 79.02 },
     ],
-    note: "链级50%止盈正式启用",
+    note: "链级50%止盈正式启用；AMAT Delta/IV 来自用户截图",
   },
 ];
 
@@ -191,6 +269,8 @@ export function getHistorySummary() {
     unrealizedPnl: h.unrealizedPnl,
     putMarks: Object.fromEntries(h.shortPuts.map((p) => [p.underlying, p.mark])),
     putLegPct: Object.fromEntries(h.shortPuts.map((p) => [p.underlying, p.legPct])),
+    putDelta: Object.fromEntries(h.shortPuts.map((p) => [p.underlying, p.delta ?? null])),
+    putIv: Object.fromEntries(h.shortPuts.map((p) => [p.underlying, p.iv ?? null])),
     note: h.note,
   }));
 }
