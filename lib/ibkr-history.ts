@@ -1,6 +1,5 @@
 /**
  * IBKR 持仓快照历史 — 每次「更新持仓」追加一条，便于复盘
- * shortPuts 含 mark / legPct / delta / iv（delta·iv 为 BS 估算或行情，历史旧条可能为空）
  */
 
 export type HistoryShortPut = {
@@ -11,9 +10,7 @@ export type HistoryShortPut = {
   mark: number;
   unrealizedPnl: number;
   legPct: number;
-  /** 卖方视角 Put Delta，约 -1～0 */
   delta?: number | null;
-  /** 年化隐含波动率，如 0.59 = 59% */
   iv?: number | null;
   spot?: number | null;
 };
@@ -52,8 +49,35 @@ export type IbkrHistoryEntry = {
   note?: string;
 };
 
-/** 新→旧。每次更新持仓插到头部。 */
+/** 新→旧 */
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
+  {
+    id: "2026-09-02",
+    capturedAt: "2026-09-02T02:10:00.000Z",
+    source: "ibkr_live",
+    nlv: 177004.07,
+    cash: 120814.72,
+    cashPct: 68.3,
+    stockMv: 81854.39,
+    unrealizedPnl: 13785.67,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 111.13, unrealizedPnl: 1862.83, legPct: 0.144, delta: -0.72, iv: 0.571, spot: 441.85 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 60.64, unrealizedPnl: 4722.86, legPct: 0.438, delta: -0.566, iv: 0.758, spot: 272.03 },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 16.45, unrealizedPnl: 2563.84, legPct: 0.609, delta: -0.28, iv: 0.796, spot: 206.63 },
+    ],
+    coveredCalls: [
+      { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 7.67, unrealizedPnl: -561.6 },
+      { underlying: "MCD", strike: 285, expiry: "2026-09-04", entry: 3.49, mark: 0.02, unrealizedPnl: 346.61 },
+    ],
+    stocks: [
+      { symbol: "GDX", qty: 100, avg: 87.31, mark: 93.98, unrealizedPnl: 667.15 },
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 261.41, unrealizedPnl: -1889.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 216.91, unrealizedPnl: 1775.73 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.12, unrealizedPnl: 1963.66 },
+      { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 90.4, unrealizedPnl: 95.61 },
+    ],
+    note: "AMAT 急跌~482→442，Put mark 87→111，Δ加深至-0.72；GDX 回落 87C 时间价值收窄；Sep04 临近",
+  },
   {
     id: "2026-08-28",
     capturedAt: "2026-08-28T03:10:00.000Z",
@@ -64,42 +88,9 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     stockMv: 83322.0,
     unrealizedPnl: 19753.26,
     shortPuts: [
-      {
-        underlying: "AMAT",
-        strike: 540,
-        expiry: "2026-11-20",
-        entry: 129.76,
-        mark: 87.39,
-        unrealizedPnl: 4237.17,
-        legPct: 0.326,
-        delta: -0.587,
-        iv: 0.59,
-        spot: 482.36,
-      },
-      {
-        underlying: "COHR",
-        strike: 310,
-        expiry: "2026-11-20",
-        entry: 107.87,
-        mark: 50.99,
-        unrealizedPnl: 5687.25,
-        legPct: 0.527,
-        delta: -0.466,
-        iv: 0.781,
-        spot: 295.39,
-      },
-      {
-        underlying: "CRDO",
-        strike: 180,
-        expiry: "2026-11-20",
-        entry: 42.09,
-        mark: 11.91,
-        unrealizedPnl: 3017.8,
-        legPct: 0.717,
-        delta: -0.178,
-        iv: 0.867,
-        spot: 240.24,
-      },
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 87.39, unrealizedPnl: 4237.17, legPct: 0.326, delta: -0.587, iv: 0.59, spot: 482.36 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 50.99, unrealizedPnl: 5687.25, legPct: 0.527, delta: -0.466, iv: 0.781, spot: 295.39 },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 11.91, unrealizedPnl: 3017.8, legPct: 0.717, delta: -0.178, iv: 0.867, spot: 240.24 },
     ],
     coveredCalls: [
       { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 16.94, unrealizedPnl: -1488.55 },
@@ -112,7 +103,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.76, unrealizedPnl: 2127.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 96.55, unrealizedPnl: 134.13 },
     ],
-    note: "首次记录 Delta/IV（BS估算）；三张Put mark继续下行，CRDO单腿已~72%",
+    note: "首次系统记录 Delta/IV",
   },
   {
     id: "2026-08-26",
@@ -139,7 +130,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.16, unrealizedPnl: 2067.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 98.73, unrealizedPnl: 147.78 },
     ],
-    note: "相对08-24：NLV回升；三张Put mark回落",
   },
   {
     id: "2026-08-24",
@@ -166,7 +156,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.2, unrealizedPnl: 1971.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 94.18, unrealizedPnl: 119.32 },
     ],
-    note: "Put 权利金回升；GDX 87C 更深实值",
   },
   {
     id: "2026-08-21",
@@ -193,7 +182,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.5, unrealizedPnl: 2001.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 89.91, unrealizedPnl: 92.55 },
     ],
-    note: "用户决定不留黄金",
   },
   {
     id: "2026-08-11",
@@ -231,17 +219,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     stockMv: 83723.49,
     unrealizedPnl: 22824.93,
     shortPuts: [
-      {
-        underlying: "AMAT",
-        strike: 540,
-        expiry: "2026-11-20",
-        entry: 129.76,
-        mark: 81.48,
-        unrealizedPnl: 4828.39,
-        legPct: 0.372,
-        delta: -0.469,
-        iv: 0.799,
-      },
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 81.48, unrealizedPnl: 4828.39, legPct: 0.372, delta: -0.469, iv: 0.799 },
       { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 39.96, unrealizedPnl: 6790.35, legPct: 0.63, delta: null, iv: null },
       { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 19.18, unrealizedPnl: 2291.11, legPct: 0.544, delta: null, iv: null },
     ],
@@ -256,7 +234,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.64, unrealizedPnl: 2115.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 87.75, unrealizedPnl: 79.02 },
     ],
-    note: "链级50%止盈正式启用；AMAT Delta/IV 来自用户截图",
+    note: "链级50%止盈正式启用",
   },
 ];
 
