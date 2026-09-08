@@ -49,6 +49,29 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-09-08",
+    capturedAt: "2026-09-08T15:11:00.000Z",
+    source: "ibkr_live",
+    nlv: 200135.92,
+    cash: 151199.02,
+    cashPct: 75.5,
+    stockMv: 69253.75,
+    unrealizedPnl: 17343.2,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 95.1, unrealizedPnl: 3466.31, legPct: 0.267, delta: -0.638, iv: 0.614, spot: 467.83 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 41.14, unrealizedPnl: 6672.66, legPct: 0.619, delta: -0.415, iv: 0.785, spot: 311.51 },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 25.25, unrealizedPnl: 1683.48, legPct: 0.4, delta: -0.442, iv: 0.773, spot: 176.83 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 255.56, unrealizedPnl: -2474.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 227.57, unrealizedPnl: 2202.26 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.96, unrealizedPnl: 2147.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 91.67, unrealizedPnl: 103.02 },
+    ],
+    note: "三张Put mark回落、浮盈回升；COHR标的回升至行权附近；CRDO仍略ITM(~177)；NLV破20万",
+  },
+  {
     id: "2026-09-06",
     capturedAt: "2026-09-06T04:06:00.000Z",
     source: "ibkr_live",
@@ -69,7 +92,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 195.06, unrealizedPnl: 2157.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 92.65, unrealizedPnl: 109.7 },
     ],
-    note: "GDX 股+87C 已清仓；MCD 285C 到期作废；现金跳升至~77%；CRDO 现价~171 低于行权 180（ITM）；周末 COHR/CRDO 账户 mark 为0，用 bid-ask 中价",
+    note: "GDX/MCD CC已清；CRDO ITM",
   },
   {
     id: "2026-09-02",
@@ -96,7 +119,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.12, unrealizedPnl: 1963.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 90.4, unrealizedPnl: 95.61 },
     ],
-    note: "AMAT 急跌；GDX 87C 仍深实值，Sep04 临近",
+    note: "AMAT急跌",
   },
   {
     id: "2026-08-28",
@@ -123,7 +146,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.76, unrealizedPnl: 2127.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 96.55, unrealizedPnl: 134.13 },
     ],
-    note: "首次系统记录 Delta/IV",
+    note: "首次系统记录Delta/IV",
   },
   {
     id: "2026-08-26",
