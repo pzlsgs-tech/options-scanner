@@ -49,6 +49,29 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-09-22",
+    capturedAt: "2026-09-22T03:05:00.000Z",
+    source: "ibkr_live",
+    nlv: 203788.39,
+    cash: 152739.4,
+    cashPct: 74.9,
+    stockMv: 68899.51,
+    unrealizedPnl: 19129.73,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 92.15, unrealizedPnl: 3761.48, legPct: 0.29, delta: -0.685, iv: 0.593, spot: 464.24 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 34.32, unrealizedPnl: 7354.47, legPct: 0.682, delta: -0.384, iv: 0.807, spot: 321.52 },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 17.64, unrealizedPnl: 2444.9, legPct: 0.581, delta: -0.38, iv: 0.735, spot: 187.27 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 248.15, unrealizedPnl: -3215.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 227.5, unrealizedPnl: 2199.33 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.42, unrealizedPnl: 2093.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 93.25, unrealizedPnl: 113.82 },
+    ],
+    note: "强反弹：AMAT 131→92 单腿回正29%；COHR 68%；CRDO重回OTM(~187) 单腿58%；NLV再破20万",
+  },
+  {
     id: "2026-09-17",
     capturedAt: "2026-09-17T06:45:00.000Z",
     source: "ibkr_live",
@@ -69,7 +92,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 191.84, unrealizedPnl: 1835.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 87.96, unrealizedPnl: 77.68 },
     ],
-    note: "AMAT 当前腿浮亏约$165（mark>入场）；COHR/CRDO 较14日回升；CRDO仍ITM~161；现金~78%",
+    note: "AMAT当前腿浮亏",
   },
   {
     id: "2026-09-14",
@@ -92,7 +115,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 191.42, unrealizedPnl: 1793.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 89.37, unrealizedPnl: 87.31 },
     ],
-    note: "半导回调：AMAT/CRDO深ITM",
+    note: "半导回调",
   },
   {
     id: "2026-09-08",

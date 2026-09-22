@@ -80,9 +80,9 @@ function daysToExpiry(expiry: string): number {
   return Math.max(0, Math.round((t - Date.now()) / 86400000));
 }
 
-/** Snapshot 2026-09-17 from live IBKR + BS greeks */
+/** Snapshot 2026-09-22 from live IBKR + BS greeks */
 export const IBKR_SNAPSHOT: IbkrSnapshot = {
-  updatedAt: "2026-09-17T06:45:00.000Z",
+  updatedAt: "2026-09-22T03:05:00.000Z",
   source: "ibkr_live",
   positions: [
     {
@@ -90,86 +90,86 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       description: "AMAT Nov20'26 540 PUT @AMEX",
       assetClass: "OPT",
       position: -1,
-      marketPrice: 131.406,
-      marketValue: -13140.6,
+      marketPrice: 92.145,
+      marketValue: -9214.47,
       averagePrice: 129.759535,
-      unrealizedPnl: -164.65,
-      dailyPnl: -83.86,
+      unrealizedPnl: 3761.48,
+      dailyPnl: 1399.24,
       right: "P",
       strike: 540,
       expiry: "2026-11-20",
       underlying: "AMAT",
-      delta: -0.8,
-      iv: 0.623,
-      spot: 415.38,
+      delta: -0.685,
+      iv: 0.593,
+      spot: 464.24,
     },
     {
       symbol: "COHR",
       description: "COHR Nov20'26 310 PUT @AMEX",
       assetClass: "OPT",
       position: -1,
-      marketPrice: 47.743,
-      marketValue: -4774.32,
+      marketPrice: 34.32,
+      marketValue: -3432.03,
       averagePrice: 107.865034,
-      unrealizedPnl: 6012.18,
-      dailyPnl: 59.7,
+      unrealizedPnl: 7354.47,
+      dailyPnl: 123.77,
       right: "P",
       strike: 310,
       expiry: "2026-11-20",
       underlying: "COHR",
-      delta: -0.51,
-      iv: 0.765,
-      spot: 289.93,
+      delta: -0.384,
+      iv: 0.807,
+      spot: 321.52,
     },
     {
       symbol: "CRDO",
       description: "CRDO Nov20'26 180 PUT @AMEX",
       assetClass: "OPT",
       position: -1,
-      marketPrice: 30.453,
-      marketValue: -3045.34,
+      marketPrice: 17.638,
+      marketValue: -1763.75,
       averagePrice: 42.086511,
-      unrealizedPnl: 1163.31,
-      dailyPnl: 43.31,
+      unrealizedPnl: 2444.9,
+      dailyPnl: 443.22,
       right: "P",
       strike: 180,
       expiry: "2026-11-20",
       underlying: "CRDO",
-      delta: -0.57,
-      iv: 0.73,
-      spot: 161.49,
+      delta: -0.38,
+      iv: 0.735,
+      spot: 187.27,
     },
     {
       symbol: "MCD",
       description: "MCD",
       assetClass: "STK",
       position: 100,
-      marketPrice: 249.8,
-      marketValue: 24980.0,
+      marketPrice: 248.15,
+      marketValue: 24815.0,
       averagePrice: 280.300363,
-      unrealizedPnl: -3050.04,
-      dailyPnl: 124.0,
+      unrealizedPnl: -3215.04,
+      dailyPnl: 27.0,
     },
     {
       symbol: "NVDA",
       description: "NVDA",
       assetClass: "STK",
       position: 40,
-      marketPrice: 215.75,
-      marketValue: 8630.0,
+      marketPrice: 227.5,
+      marketValue: 9100.0,
       averagePrice: 172.516855,
-      unrealizedPnl: 1729.33,
-      dailyPnl: 74.0,
+      unrealizedPnl: 2199.33,
+      dailyPnl: 4.8,
     },
     {
       symbol: "VWRA",
       description: "VWRA @LSEETF",
       assetClass: "STK",
       position: 100,
-      marketPrice: 191.84,
-      marketValue: 19184.0,
+      marketPrice: 194.42,
+      marketValue: 19442.0,
       averagePrice: 173.483392,
-      unrealizedPnl: 1835.66,
+      unrealizedPnl: 2093.66,
       dailyPnl: 0.0,
     },
     {
@@ -177,28 +177,28 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       description: "IBKR",
       assetClass: "STK",
       position: 6.8302,
-      marketPrice: 87.96,
-      marketValue: 600.78,
+      marketPrice: 93.25,
+      marketValue: 636.92,
       averagePrice: 76.58633715,
-      unrealizedPnl: 77.68,
-      dailyPnl: 8.33,
+      unrealizedPnl: 113.82,
+      dailyPnl: 0.27,
     },
   ],
   balances: {
-    netLiquidation: 195485.04,
-    cashBalance: 152649.19,
-    stockMarketValue: 68042.46,
-    unrealizedPnl: 11000.14,
-    cashPct: 78.1,
+    netLiquidation: 203788.39,
+    cashBalance: 152739.4,
+    stockMarketValue: 68899.51,
+    unrealizedPnl: 19129.73,
+    cashPct: 74.9,
     currency: "BASE",
   },
   sectors: [
-    { name: "Cash", nav: 152649.19, weight: 0.781, side: "long" },
-    { name: "Consumer Cyclicals", nav: 24980.0, weight: 0.128, side: "long" },
-    { name: "Broad", nav: 19184.0, weight: 0.098, side: "long" },
-    { name: "Technology", nav: 8630.0, weight: 0.044, side: "long" },
-    { name: "Financials", nav: 600.78, weight: 0.003, side: "long" },
-    { name: "Technology (short options)", nav: -20960.26, weight: 1.0, side: "short" },
+    { name: "Cash", nav: 152739.4, weight: 0.749, side: "long" },
+    { name: "Consumer Cyclicals", nav: 24815.0, weight: 0.122, side: "long" },
+    { name: "Broad", nav: 19442.0, weight: 0.095, side: "long" },
+    { name: "Technology", nav: 9100.0, weight: 0.045, side: "long" },
+    { name: "Financials", nav: 636.92, weight: 0.003, side: "long" },
+    { name: "Technology (short options)", nav: -14410.25, weight: 1.0, side: "short" },
   ],
 };
 
@@ -282,13 +282,9 @@ export function portfolioRiskFlags(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
     flags.push("主止盈=链累计净权利金50%：当前三张均未达链目标平仓价");
   }
 
-  const amat = shorts.find((p) => p.underlying === "AMAT");
-  if (amat && amat.unrealizedPnl < 0) {
-    flags.push("AMAT 当前腿已浮亏 — 按链级与接股 thesis 管理，勿盲目 Roll");
-  }
-  const crdo = shorts.find((p) => p.underlying === "CRDO");
-  if (crdo && (crdo.spot ?? 999) < (crdo.strike ?? 0) * 0.95) {
-    flags.push("CRDO 仍实值 — 按接股意愿管理");
+  const cohr = shorts.find((p) => p.underlying === "COHR");
+  if (cohr && cohr.profitPctOfCredit >= 0.65) {
+    flags.push("COHR 单腿已约68% — 接近高水位，仍以链级目标为准");
   }
 
   return { flags, limits, cashPct: balances.cashPct, nlv: balances.netLiquidation };
