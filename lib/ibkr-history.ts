@@ -49,6 +49,29 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-09-27",
+    capturedAt: "2026-09-27T03:44:00.000Z",
+    source: "ibkr_live",
+    nlv: 203953.66,
+    cash: 152914.48,
+    cashPct: 75.0,
+    stockMv: 67235.4,
+    unrealizedPnl: 19030.68,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 76.58, unrealizedPnl: 5318.45, legPct: 0.41, delta: -0.629, iv: 0.588, spot: 485.0 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 42.33, unrealizedPnl: 6553.86, legPct: 0.608, delta: -0.494, iv: 0.773, spot: 295.83 },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 10.64, unrealizedPnl: 3144.67, legPct: 0.747, delta: -0.242, iv: 0.777, spot: 210.97 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 236.6, unrealizedPnl: -4370.14 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 225.0, unrealizedPnl: 2099.25 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.52, unrealizedPnl: 2003.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 89.24, unrealizedPnl: 86.43 },
+    ],
+    note: "周末：AMAT 80→76.6 单腿41%；CRDO 11.7→10.6 单腿75% 更近链目标$8.9；COHR持平；DTE~55",
+  },
+  {
     id: "2026-09-25",
     capturedAt: "2026-09-25T14:48:00.000Z",
     source: "ibkr_live",
@@ -69,7 +92,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.26, unrealizedPnl: 1977.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 88.65, unrealizedPnl: 82.4 },
     ],
-    note: "AMAT 92→80 单腿38%；CRDO 17.6→11.7 单腿72%接近链目标$8.9；COHR 34→43 标的回落；DTE~56",
+    note: "CRDO接近链目标",
   },
   {
     id: "2026-09-22",
@@ -92,7 +115,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.42, unrealizedPnl: 2093.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 93.25, unrealizedPnl: 113.82 },
     ],
-    note: "强反弹；NLV再破20万",
+    note: "强反弹",
   },
   {
     id: "2026-09-17",
