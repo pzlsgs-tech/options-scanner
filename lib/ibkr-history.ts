@@ -49,6 +49,29 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-09-30",
+    capturedAt: "2026-09-30T00:42:00.000Z",
+    source: "ibkr_live",
+    nlv: 205200.29,
+    cash: 152968.44,
+    cashPct: 74.5,
+    stockMv: 66890.79,
+    unrealizedPnl: 20172.56,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 61.49, unrealizedPnl: 6827.18, legPct: 0.526, delta: -0.536, iv: 0.612, spot: 512.01 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 42.78, unrealizedPnl: 6508.34, legPct: 0.603, delta: -0.517, iv: 0.761, spot: 292.21 },
+      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 15.19, unrealizedPnl: 2689.43, legPct: 0.639, delta: -0.346, iv: 0.764, spot: 192.35 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 234.36, unrealizedPnl: -4594.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 228.16, unrealizedPnl: 2225.73 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 192.02, unrealizedPnl: 1853.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 86.5, unrealizedPnl: 67.71 },
+    ],
+    note: "AMAT 76→61 单腿53% 标的~512 Δ收敛；CRDO 10.6→15.2 回撤；COHR持平；NLV $205k；DTE~52",
+  },
+  {
     id: "2026-09-27",
     capturedAt: "2026-09-27T03:44:00.000Z",
     source: "ibkr_live",
@@ -69,7 +92,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.52, unrealizedPnl: 2003.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 89.24, unrealizedPnl: 86.43 },
     ],
-    note: "周末：AMAT 80→76.6 单腿41%；CRDO 11.7→10.6 单腿75% 更近链目标$8.9；COHR持平；DTE~55",
+    note: "CRDO接近链目标$8.9",
   },
   {
     id: "2026-09-25",
