@@ -45,7 +45,6 @@ export type IbkrHistoryEntry = {
   coveredCalls: HistoryCoveredCall[];
   stocks: HistoryStock[];
   note?: string;
-  /** optional macro context from this capture */
   brentPrice?: number | null;
   fearGreedIndex?: number | null;
 };
@@ -71,7 +70,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 192.76, unrealizedPnl: 1927.86 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 88.2, unrealizedPnl: 79.32 },
     ],
-    note: "CRDO Put 已平仓；AMAT~ATM 单腿66%；COHR OTM 单腿78%；NLV $211k；布伦特~$103；CNN F&G~31 Fear",
+    note: "CRDO 已于10/01买回@11.26，本腿已实现约+$3,082；AMAT~ATM 单腿66%；COHR 单腿78%；NLV $211k；布伦特~$103；F&G~31 Fear",
     brentPrice: 102.7,
     fearGreedIndex: 31,
   },
@@ -96,7 +95,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 191.0, unrealizedPnl: 1751.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 85.96, unrealizedPnl: 64.02 },
     ],
-    note: "AMAT 单腿54%",
+    note: "AMAT 单腿54%；当日稍后 CRDO 买回@11.26 已实现约+$3,082（本腿）",
   },
   {
     id: "2026-09-30",
