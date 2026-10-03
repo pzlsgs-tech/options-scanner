@@ -45,9 +45,36 @@ export type IbkrHistoryEntry = {
   coveredCalls: HistoryCoveredCall[];
   stocks: HistoryStock[];
   note?: string;
+  /** optional macro context from this capture */
+  brentPrice?: number | null;
+  fearGreedIndex?: number | null;
 };
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
+  {
+    id: "2026-10-03",
+    capturedAt: "2026-10-03T02:43:00.000Z",
+    source: "ibkr_live",
+    nlv: 210589.84,
+    cash: 151665.49,
+    cashPct: 72.0,
+    stockMv: 67112.8,
+    unrealizedPnl: 21423.7,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 43.82, unrealizedPnl: 8593.88, legPct: 0.662, delta: -0.447, iv: 0.579, spot: 540.04 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 23.22, unrealizedPnl: 8464.77, legPct: 0.785, delta: -0.323, iv: 0.764, spot: 337.04 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 232.23, unrealizedPnl: -4807.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 234.22, unrealizedPnl: 2468.13 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 192.76, unrealizedPnl: 1927.86 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 88.2, unrealizedPnl: 79.32 },
+    ],
+    note: "CRDO Put 已平仓；AMAT~ATM 单腿66%；COHR OTM 单腿78%；NLV $211k；布伦特~$103；CNN F&G~31 Fear",
+    brentPrice: 102.7,
+    fearGreedIndex: 31,
+  },
   {
     id: "2026-10-01",
     capturedAt: "2026-10-01T08:11:00.000Z",
@@ -69,7 +96,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 191.0, unrealizedPnl: 1751.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 85.96, unrealizedPnl: 64.02 },
     ],
-    note: "AMAT 61→60 单腿54%；CRDO 15→14 略改善；COHR 43→45；NLV $206k；DTE~51",
+    note: "AMAT 单腿54%",
   },
   {
     id: "2026-09-30",
@@ -92,7 +119,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 192.02, unrealizedPnl: 1853.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 86.5, unrealizedPnl: 67.71 },
     ],
-    note: "AMAT单腿53%",
   },
   {
     id: "2026-09-27",
@@ -115,7 +141,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.52, unrealizedPnl: 2003.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 89.24, unrealizedPnl: 86.43 },
     ],
-    note: "CRDO接近链目标",
   },
   {
     id: "2026-09-25",
@@ -160,7 +185,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.42, unrealizedPnl: 2093.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 93.25, unrealizedPnl: 113.82 },
     ],
-    note: "强反弹",
   },
   {
     id: "2026-09-17",
@@ -183,7 +207,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 191.84, unrealizedPnl: 1835.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 87.96, unrealizedPnl: 77.68 },
     ],
-    note: "AMAT当前腿浮亏",
   },
   {
     id: "2026-09-14",
@@ -206,7 +229,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 191.42, unrealizedPnl: 1793.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 89.37, unrealizedPnl: 87.31 },
     ],
-    note: "半导回调",
   },
   {
     id: "2026-09-08",
@@ -229,7 +251,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.96, unrealizedPnl: 2147.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 91.67, unrealizedPnl: 103.02 },
     ],
-    note: "NLV破20万",
   },
   {
     id: "2026-09-06",
@@ -252,7 +273,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 195.06, unrealizedPnl: 2157.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 92.65, unrealizedPnl: 109.7 },
     ],
-    note: "GDX/MCD CC已清",
   },
   {
     id: "2026-09-02",
@@ -279,7 +299,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.12, unrealizedPnl: 1963.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 90.4, unrealizedPnl: 95.61 },
     ],
-    note: "AMAT急跌",
   },
   {
     id: "2026-08-28",
@@ -305,111 +324,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "NVDA", qty: 40, avg: 172.52, mark: 226.67, unrealizedPnl: 2166.13 },
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.76, unrealizedPnl: 2127.66 },
       { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 96.55, unrealizedPnl: 134.13 },
-    ],
-    note: "首次系统记录Delta/IV",
-  },
-  {
-    id: "2026-08-26",
-    capturedAt: "2026-08-26T04:40:00.000Z",
-    source: "ibkr_live",
-    nlv: 181277.0,
-    cash: 120463.29,
-    cashPct: 66.5,
-    stockMv: 83739.12,
-    unrealizedPnl: 18764.78,
-    shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 90.8, unrealizedPnl: 3896.15, legPct: 0.3 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 56.9, unrealizedPnl: 5096.75, legPct: 0.472 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 15.63, unrealizedPnl: 2645.93, legPct: 0.629 },
-    ],
-    coveredCalls: [
-      { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 18.56, unrealizedPnl: -1650.8 },
-      { underlying: "MCD", strike: 285, expiry: "2026-09-04", entry: 3.49, mark: 0.19, unrealizedPnl: 330.26 },
-    ],
-    stocks: [
-      { symbol: "GDX", qty: 100, avg: 87.31, mark: 105.07, unrealizedPnl: 1776.15 },
-      { symbol: "MCD", qty: 100, avg: 280.3, mark: 268.73, unrealizedPnl: -1157.04 },
-      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 213.83, unrealizedPnl: 1652.53 },
-      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.16, unrealizedPnl: 2067.66 },
-      { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 98.73, unrealizedPnl: 147.78 },
-    ],
-  },
-  {
-    id: "2026-08-24",
-    capturedAt: "2026-08-24T14:30:00.000Z",
-    source: "ibkr_live",
-    nlv: 179189.96,
-    cash: 120483.79,
-    cashPct: 67.2,
-    stockMv: 83603.42,
-    unrealizedPnl: 16678.16,
-    shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 92.57, unrealizedPnl: 3718.49, legPct: 0.287 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 67.19, unrealizedPnl: 4067.84, legPct: 0.377 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 18.12, unrealizedPnl: 2396.75, legPct: 0.57 },
-    ],
-    coveredCalls: [
-      { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 17.17, unrealizedPnl: -1511.97 },
-      { underlying: "MCD", strike: 285, expiry: "2026-09-04", entry: 3.49, mark: 0.48, unrealizedPnl: 300.86 },
-    ],
-    stocks: [
-      { symbol: "GDX", qty: 100, avg: 87.31, mark: 103.86, unrealizedPnl: 1655.15 },
-      { symbol: "MCD", qty: 100, avg: 280.3, mark: 271.81, unrealizedPnl: -849.04 },
-      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 210.04, unrealizedPnl: 1500.73 },
-      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.2, unrealizedPnl: 1971.66 },
-      { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 94.18, unrealizedPnl: 119.32 },
-    ],
-  },
-  {
-    id: "2026-08-21",
-    capturedAt: "2026-08-21T03:45:00.000Z",
-    source: "backfill",
-    nlv: 181895.96,
-    cash: 120485.34,
-    cashPct: 66.2,
-    stockMv: 83185.32,
-    unrealizedPnl: 19400.8,
-    shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 84.86, unrealizedPnl: 4490.41, legPct: 0.346 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 56.04, unrealizedPnl: 5182.72, legPct: 0.48 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 16.28, unrealizedPnl: 2580.49, legPct: 0.613 },
-    ],
-    coveredCalls: [
-      { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 13.46, unrealizedPnl: -1140.6 },
-      { underlying: "MCD", strike: 285, expiry: "2026-09-04", entry: 3.49, mark: 0.48, unrealizedPnl: 300.46 },
-    ],
-    stocks: [
-      { symbol: "GDX", qty: 100, avg: 87.31, mark: 100.58, unrealizedPnl: 1327.15 },
-      { symbol: "MCD", qty: 100, avg: 280.3, mark: 269.4, unrealizedPnl: -1090.04 },
-      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 217.76, unrealizedPnl: 1809.73 },
-      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.5, unrealizedPnl: 2001.66 },
-      { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 89.91, unrealizedPnl: 92.55 },
-    ],
-  },
-  {
-    id: "2026-08-11",
-    capturedAt: "2026-08-11T05:00:00.000Z",
-    source: "backfill",
-    nlv: 183591.47,
-    cash: 121424.84,
-    cashPct: 66.1,
-    stockMv: 83449.09,
-    unrealizedPnl: 19914.07,
-    shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 85.42, unrealizedPnl: 4433.85, legPct: 0.342 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 53.5, unrealizedPnl: 5436.97, legPct: 0.504 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 19.63, unrealizedPnl: 2245.66, legPct: 0.534 },
-    ],
-    coveredCalls: [
-      { underlying: "GDX", strike: 87, expiry: "2026-09-04", entry: 2.05, mark: 6.43, unrealizedPnl: -438.11 },
-      { underlying: "MCD", strike: 285, expiry: "2026-09-04", entry: 3.49, mark: 1.98, unrealizedPnl: 150.92 },
-    ],
-    stocks: [
-      { symbol: "GDX", qty: 100, avg: 87.31, mark: 90.96, unrealizedPnl: 365.15 },
-      { symbol: "MCD", qty: 100, avg: 280.3, mark: 273.57, unrealizedPnl: -673.04 },
-      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 219.33, unrealizedPnl: 1872.53 },
-      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.48, unrealizedPnl: 2099.66 },
-      { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 90.66, unrealizedPnl: 97.24 },
     ],
   },
   {
@@ -452,6 +366,8 @@ export function getHistorySummary() {
     putLegPct: Object.fromEntries(h.shortPuts.map((p) => [p.underlying, p.legPct])),
     putDelta: Object.fromEntries(h.shortPuts.map((p) => [p.underlying, p.delta ?? null])),
     putIv: Object.fromEntries(h.shortPuts.map((p) => [p.underlying, p.iv ?? null])),
+    brentPrice: h.brentPrice ?? null,
+    fearGreedIndex: h.fearGreedIndex ?? null,
     note: h.note,
   }));
 }
