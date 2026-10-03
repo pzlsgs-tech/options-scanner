@@ -10,6 +10,14 @@ export type MarketRegime =
   | "Risk Off"
   | "Risk On";
 
+export type FearGreedLabel =
+  | "Extreme Fear"
+  | "Fear"
+  | "Neutral"
+  | "Greed"
+  | "Extreme Greed"
+  | "Unknown";
+
 export type MarketSnapshot = {
   regimes: MarketRegime[];
   vixProxy: number;
@@ -17,16 +25,40 @@ export type MarketSnapshot = {
   qqqChange: number;
   spyTrend: "up" | "down" | "sideways";
   qqqTrend: "up" | "down" | "sideways";
+  /** Brent crude USD/bbl (BZ=F or front-month) */
+  brentPrice: number | null;
+  /** CNN Fear & Greed 0–100 */
+  fearGreedIndex: number | null;
+  fearGreedLabel: FearGreedLabel;
   summary: string;
   strategyBias: "sell_premium" | "buy_options" | "neutral" | "defensive";
 };
+
+export function fearGreedLabel(score: number | null | undefined): FearGreedLabel {
+  if (score == null || Number.isNaN(score)) return "Unknown";
+  if (score <= 24) return "Extreme Fear";
+  if (score <= 44) return "Fear";
+  if (score <= 55) return "Neutral";
+  if (score <= 74) return "Greed";
+  return "Extreme Greed";
+}
 
 export function analyzeMarket(params: {
   spyChange: number;
   qqqChange: number;
   spyVolProxy?: number;
+  brentPrice?: number | null;
+  fearGreedIndex?: number | null;
 }): MarketSnapshot {
   const { spyChange, qqqChange } = params;
+  const brentPrice =
+    params.brentPrice != null && !Number.isNaN(params.brentPrice) ? params.brentPrice : null;
+  const fearGreedIndex =
+    params.fearGreedIndex != null && !Number.isNaN(params.fearGreedIndex)
+      ? Math.round(params.fearGreedIndex)
+      : null;
+  const fgiLabel = fearGreedLabel(fearGreedIndex);
+
   const avgMove = (Math.abs(spyChange) + Math.abs(qqqChange)) / 2;
   const vixProxy = Math.min(45, Math.max(12, 15 + avgMove * 4));
 
@@ -50,6 +82,15 @@ export function analyzeMarket(params: {
   if (vixProxy >= 28) regimes.push("High IV");
   else if (vixProxy <= 16) regimes.push("Low IV");
 
+  // Oil / sentiment overlays (informational + soft bias)
+  if (brentPrice != null && brentPrice >= 100) {
+    // elevated energy cost → mild risk-off tilt if not already bull
+    if (!regimes.includes("Bull")) regimes.push("Risk Off");
+  }
+  if (fearGreedIndex != null && fearGreedIndex <= 25) {
+    if (!regimes.includes("Risk Off")) regimes.push("Risk Off");
+  }
+
   let strategyBias: MarketSnapshot["strategyBias"] = "neutral";
   if (regimes.includes("High IV") && (regimes.includes("Sideways") || regimes.includes("Bull"))) {
     strategyBias = "sell_premium";
@@ -59,14 +100,16 @@ export function analyzeMarket(params: {
     strategyBias = "defensive";
   }
 
-  const summary = [
+  const parts = [
     `VIX代理≈${vixProxy.toFixed(0)}`,
     `SPY ${spyChange >= 0 ? "+" : ""}${spyChange.toFixed(2)}% (${spyTrend})`,
     `QQQ ${qqqChange >= 0 ? "+" : ""}${qqqChange.toFixed(2)}% (${qqqTrend})`,
-    `偏向: ${strategyBias}`,
-  ].join(" · ");
+  ];
+  if (brentPrice != null) parts.push(`布伦特 $${brentPrice.toFixed(2)}`);
+  if (fearGreedIndex != null) parts.push(`F&G ${fearGreedIndex} (${fgiLabel})`);
+  parts.push(`偏向: ${strategyBias}`);
+  const summary = parts.join(" · ");
 
-  // Dedupe without Set spread (avoids downlevelIteration requirement)
   const uniqueRegimes: MarketRegime[] = [];
   for (let i = 0; i < regimes.length; i++) {
     if (uniqueRegimes.indexOf(regimes[i]) === -1) uniqueRegimes.push(regimes[i]);
@@ -79,6 +122,9 @@ export function analyzeMarket(params: {
     qqqChange,
     spyTrend,
     qqqTrend,
+    brentPrice,
+    fearGreedIndex,
+    fearGreedLabel: fgiLabel,
     summary,
     strategyBias,
   };
