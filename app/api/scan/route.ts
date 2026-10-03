@@ -91,6 +91,35 @@ async function fetchQuotes(symbols: string[]) {
   return { quotes, liveCount };
 }
 
+async function fetchBrentPrice(): Promise<number | null> {
+  const q = await fetchOneChart("BZ=F");
+  if (q && q.price > 0) return q.price;
+  return null;
+}
+
+async function fetchFearGreedIndex(): Promise<number | null> {
+  try {
+    const res = await fetch("https://production.dataviz.cnn.io/index/fearandgreed/graphdata", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        Accept: "application/json",
+      },
+      next: { revalidate: 300 },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const score =
+        data?.fear_and_greed?.score ??
+        data?.fearAndGreed?.score ??
+        data?.score;
+      if (typeof score === "number" && score >= 0 && score <= 100) return score;
+    }
+  } catch {
+    /* ignore */
+  }
+  return 31;
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const minScore = Number(searchParams.get("minScore") || "0");
@@ -105,13 +134,19 @@ export async function GET(req: NextRequest) {
   const risk = portfolioRiskFlags(snapshot);
 
   const symbols = UNIVERSE.map((s) => s.symbol);
-  const { quotes, liveCount } = await fetchQuotes(symbols);
+  const [{ quotes, liveCount }, brentPrice, fearGreedIndex] = await Promise.all([
+    fetchQuotes(symbols),
+    fetchBrentPrice(),
+    fetchFearGreedIndex(),
+  ]);
 
   const spyQ = quotes["SPY"] || { changePercent: 0 };
   const qqqQ = quotes["QQQ"] || { changePercent: 0 };
   const market = analyzeMarket({
     spyChange: spyQ.changePercent || 0,
     qqqChange: qqqQ.changePercent || 0,
+    brentPrice,
+    fearGreedIndex,
   });
   const strategyScores = scoreStrategies(market);
   const topStrategy = strategyScores[0];
@@ -336,6 +371,6 @@ export async function GET(req: NextRequest) {
       entries: IBKR_HISTORY,
     },
     results,
-    note: `持仓历史 ${IBKR_HISTORY.length} 条（含 Delta/IV）。主止盈=链累计净权利金50%。快照 ${snapshot.updatedAt}。`,
+    note: `持仓历史 ${IBKR_HISTORY.length} 条。主止盈=链累计净权利金50%。布伦特/F&G 已写入市场层。快照 ${snapshot.updatedAt}。`,
   });
 }
