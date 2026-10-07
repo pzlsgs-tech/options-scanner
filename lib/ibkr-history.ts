@@ -51,6 +51,30 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-10-07",
+    capturedAt: "2026-10-07T14:46:00.000Z",
+    source: "ibkr_live",
+    nlv: 209933.55,
+    cash: 152118.16,
+    cashPct: 72.5,
+    stockMv: 67261.46,
+    unrealizedPnl: 20583.15,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 48.59, unrealizedPnl: 8116.89, legPct: 0.626, delta: -0.526, iv: 0.545, spot: 521.09 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 25.75, unrealizedPnl: 8211.58, legPct: 0.761, delta: -0.387, iv: 0.727, spot: 321.15 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 231.51, unrealizedPnl: -4879.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 237.71, unrealizedPnl: 2607.73 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.08, unrealizedPnl: 1959.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 86.36, unrealizedPnl: 66.72 },
+    ],
+    note: "AMAT回撤至~521 单腿63% Δ-0.53；COHR~321 单腿76%；NLV略降至$210k；布伦特~$101",
+    brentPrice: 101.44,
+    fearGreedIndex: null,
+  },
+  {
     id: "2026-10-05",
     capturedAt: "2026-10-05T14:36:00.000Z",
     source: "ibkr_live",
@@ -144,28 +168,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     ],
   },
   {
-    id: "2026-09-27",
-    capturedAt: "2026-09-27T03:44:00.000Z",
-    source: "ibkr_live",
-    nlv: 203953.66,
-    cash: 152914.48,
-    cashPct: 75.0,
-    stockMv: 67235.4,
-    unrealizedPnl: 19030.68,
-    shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 76.58, unrealizedPnl: 5318.45, legPct: 0.41, delta: -0.629, iv: 0.588, spot: 485.0 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 42.33, unrealizedPnl: 6553.86, legPct: 0.608, delta: -0.494, iv: 0.773, spot: 295.83 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 10.64, unrealizedPnl: 3144.67, legPct: 0.747, delta: -0.242, iv: 0.777, spot: 210.97 },
-    ],
-    coveredCalls: [],
-    stocks: [
-      { symbol: "MCD", qty: 100, avg: 280.3, mark: 236.6, unrealizedPnl: -4370.14 },
-      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 225.0, unrealizedPnl: 2099.25 },
-      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.52, unrealizedPnl: 2003.66 },
-      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 89.24, unrealizedPnl: 86.43 },
-    ],
-  },
-  {
     id: "2026-09-22",
     capturedAt: "2026-09-22T03:05:00.000Z",
     source: "ibkr_live",
@@ -229,28 +231,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "NVDA", qty: 40, avg: 172.52, mark: 227.57, unrealizedPnl: 2202.26 },
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 194.96, unrealizedPnl: 2147.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 91.67, unrealizedPnl: 103.02 },
-    ],
-  },
-  {
-    id: "2026-09-06",
-    capturedAt: "2026-09-06T04:06:00.000Z",
-    source: "ibkr_live",
-    nlv: 197525.35,
-    cash: 151428.13,
-    cashPct: 76.7,
-    stockMv: 69503.97,
-    unrealizedPnl: 14518.14,
-    shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 103.29, unrealizedPnl: 2646.75, legPct: 0.204, delta: -0.678, iv: 0.6, spot: 454.71 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 54.9, unrealizedPnl: 5297.0, legPct: 0.491, delta: -0.529, iv: 0.769, spot: 281.86 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 27.85, unrealizedPnl: 1424.0, legPct: 0.338, delta: -0.484, iv: 0.752, spot: 170.57 },
-    ],
-    coveredCalls: [],
-    stocks: [
-      { symbol: "MCD", qty: 100, avg: 280.3, mark: 256.0, unrealizedPnl: -2430.04 },
-      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 229.49, unrealizedPnl: 2278.81 },
-      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 2157.66, unrealizedPnl: 2157.66 },
-      { symbol: "IBKR", qty: 6.262, avg: 75.13, mark: 92.65, unrealizedPnl: 109.7 },
     ],
   },
   {
