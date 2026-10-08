@@ -51,6 +51,30 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-10-08",
+    capturedAt: "2026-10-08T12:19:00.000Z",
+    source: "ibkr_live",
+    nlv: 208889.81,
+    cash: 152360.0,
+    cashPct: 72.9,
+    stockMv: 67136.78,
+    unrealizedPnl: 19225.27,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 50.14, unrealizedPnl: 7961.62, legPct: 0.614, delta: -0.525, iv: 0.569, spot: 520.65 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 20.84, unrealizedPnl: 8702.72, legPct: 0.807, delta: -0.327, iv: 0.731, spot: 334.56 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 231.05, unrealizedPnl: -4925.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 235.1, unrealizedPnl: 2503.33 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 192.56, unrealizedPnl: 1907.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 86.68, unrealizedPnl: 68.94 },
+    ],
+    note: "AMAT~521 单腿61% Δ-0.53；COHR反弹~335 mark降至20.8 单腿81%；布伦特升至~$105",
+    brentPrice: 104.78,
+    fearGreedIndex: null,
+  },
+  {
     id: "2026-10-07",
     capturedAt: "2026-10-07T14:46:00.000Z",
     source: "ibkr_live",
@@ -144,28 +168,6 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 85.96, unrealizedPnl: 64.02 },
     ],
     note: "AMAT 单腿54%；当日稍后 CRDO 买回@11.26 已实现约+$3,082（本腿）",
-  },
-  {
-    id: "2026-09-30",
-    capturedAt: "2026-09-30T00:42:00.000Z",
-    source: "ibkr_live",
-    nlv: 205200.29,
-    cash: 152968.44,
-    cashPct: 74.5,
-    stockMv: 66890.79,
-    unrealizedPnl: 20172.56,
-    shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 61.49, unrealizedPnl: 6827.18, legPct: 0.526, delta: -0.536, iv: 0.612, spot: 512.01 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 42.78, unrealizedPnl: 6508.34, legPct: 0.603, delta: -0.517, iv: 0.761, spot: 292.21 },
-      { underlying: "CRDO", strike: 180, expiry: "2026-11-20", entry: 42.09, mark: 15.19, unrealizedPnl: 2689.43, legPct: 0.639, delta: -0.346, iv: 0.764, spot: 192.35 },
-    ],
-    coveredCalls: [],
-    stocks: [
-      { symbol: "MCD", qty: 100, avg: 280.3, mark: 234.36, unrealizedPnl: -4594.04 },
-      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 228.16, unrealizedPnl: 2225.73 },
-      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 192.02, unrealizedPnl: 1853.66 },
-      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 86.5, unrealizedPnl: 67.71 },
-    ],
   },
   {
     id: "2026-09-22",
