@@ -52,6 +52,30 @@ export type IbkrHistoryEntry = {
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
     id: "2026-10-09",
+    capturedAt: "2026-10-09T10:05:00.000Z",
+    source: "ibkr_live",
+    nlv: 209787.48,
+    cash: 152146.52,
+    cashPct: 72.5,
+    stockMv: 67866.32,
+    unrealizedPnl: 20375.61,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 57.36, unrealizedPnl: 7240.2, legPct: 0.558, delta: -0.512, iv: 0.671, spot: 520.0 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 33.98, unrealizedPnl: 7388.75, legPct: 0.685, delta: -0.427, iv: 0.849, spot: 313.13 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 236.94, unrealizedPnl: -4336.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 234.27, unrealizedPnl: 2470.13 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.62, unrealizedPnl: 2013.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 87.0, unrealizedPnl: 71.13 },
+    ],
+    note: "盘前刷新：期权mark仍为10/08收盘；AMAT现货~520仍ITM 单腿56%；COHR现货~313 单腿69%；链目标均未达；布伦特102.88；F&G 37.9 Fear",
+    brentPrice: 102.88,
+    fearGreedIndex: 37.89,
+  },
+  {
+    id: "2026-10-09",
     capturedAt: "2026-10-09T03:40:00.000Z",
     source: "ibkr_live",
     nlv: 207986.11,
