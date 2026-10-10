@@ -51,6 +51,30 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-10-10",
+    capturedAt: "2026-10-10T10:01:00.000Z",
+    source: "ibkr_live",
+    nlv: 208911.23,
+    cash: 152233.64,
+    cashPct: 72.87,
+    stockMv: 67507.20,
+    unrealizedPnl: 19377.81,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 56.81, unrealizedPnl: 7294.75, legPct: 0.562, delta: -0.583, iv: 0.571, spot: 507.03 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 28.18, unrealizedPnl: 7968.52, legPct: 0.739, delta: -0.430, iv: 0.729, spot: 312.62 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.3, mark: 235.82, unrealizedPnl: -4448.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 229.33, unrealizedPnl: 2272.53 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.50, unrealizedPnl: 2001.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 88.00, unrealizedPnl: 77.96 },
+    ],
+    note: "收盘：AMAT~507 ITM 单腿56% mark降至56.8；COHR~313 单腿74% mark降至28.2；链目标均未达；布伦特~104.7；F&G 45 Neutral",
+    brentPrice: 104.72,
+    fearGreedIndex: 45,
+  },
+  {
     id: "2026-10-09",
     capturedAt: "2026-10-09T10:05:00.000Z",
     source: "ibkr_live",
@@ -70,7 +94,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.62, unrealizedPnl: 2013.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 87.0, unrealizedPnl: 71.13 },
     ],
-    note: "盘前刷新：期权mark仍为10/08收盘；AMAT现货~520仍ITM 单腿56%；COHR现货~313 单腿69%；链目标均未达；布伦特102.88；F&G 37.9 Fear",
+    note: "盘前刷新：期权mark仍为10/08收盘；AMAT现货~520仍ITM 单腿56%；COHR现货~313 单腿69%；链目标均未达；布伦特~102.88；F&G 37.9 Fear",
     brentPrice: 102.88,
     fearGreedIndex: 37.89,
   },
