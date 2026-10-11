@@ -80,9 +80,9 @@ function daysToExpiry(expiry: string): number {
   return Math.max(0, Math.round((t - Date.now()) / 86400000));
 }
 
-/** Snapshot 2026-10-10: IBKR live marks + BS greeks */
+/** Snapshot 2026-10-11: IBKR live marks + BS greeks (weekend, last close) */
 export const IBKR_SNAPSHOT: IbkrSnapshot = {
-  updatedAt: "2026-10-10T10:01:00.000Z",
+  updatedAt: "2026-10-11T10:01:00.000Z",
   source: "ibkr_live",
   positions: [
     {
