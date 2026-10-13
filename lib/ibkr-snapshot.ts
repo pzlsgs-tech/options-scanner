@@ -80,9 +80,9 @@ function daysToExpiry(expiry: string): number {
   return Math.max(0, Math.round((t - Date.now()) / 86400000));
 }
 
-/** Snapshot 2026-10-13: IBKR live marks + Greeks */
+/** Snapshot 2026-10-13: IBKR live marks + BS greeks */
 export const IBKR_SNAPSHOT: IbkrSnapshot = {
-  updatedAt: "2026-10-13T02:56:00.000Z",
+  updatedAt: "2026-10-13T02:58:00.000Z",
   source: "ibkr_live",
   positions: [
     {
@@ -99,9 +99,9 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       strike: 540,
       expiry: "2026-11-20",
       underlying: "AMAT",
-      delta: -0.636,
-      iv: 0.556,
-      spot: 493.5,
+      delta: -0.630,
+      iv: 0.568,
+      spot: 497.53,
     },
     {
       symbol: "COHR",
@@ -117,9 +117,9 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
       strike: 310,
       expiry: "2026-11-20",
       underlying: "COHR",
-      delta: -0.572,
-      iv: 0.722,
-      spot: 280.36,
+      delta: -0.571,
+      iv: 0.725,
+      spot: 288.02,
     },
     {
       symbol: "MCD",
