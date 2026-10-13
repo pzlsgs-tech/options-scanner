@@ -52,7 +52,7 @@ export type IbkrHistoryEntry = {
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
     id: "2026-10-13",
-    capturedAt: "2026-10-13T02:56:00.000Z",
+    capturedAt: "2026-10-13T02:58:00.000Z",
     source: "ibkr_live",
     nlv: 205923.93,
     cash: 152190.66,
@@ -60,8 +60,8 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     stockMv: 67229.76,
     unrealizedPnl: 16444.02,
     shortPuts: [
-      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 61.15, unrealizedPnl: 6860.92, legPct: 0.529, delta: -0.636, iv: 0.556, spot: 493.5 },
-      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 39.30, unrealizedPnl: 6856.42, legPct: 0.636, delta: -0.572, iv: 0.722, spot: 280.36 },
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 61.15, unrealizedPnl: 6860.92, legPct: 0.529, delta: -0.630, iv: 0.568, spot: 497.53 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 39.30, unrealizedPnl: 6856.42, legPct: 0.636, delta: -0.571, iv: 0.725, spot: 288.02 },
     ],
     coveredCalls: [],
     stocks: [
@@ -70,9 +70,9 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.72, unrealizedPnl: 2023.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 87.33, unrealizedPnl: 73.38 },
     ],
-    note: "盘后：AMAT~494 ITM mark 61.2 单腿53%；COHR~280 mark 39.3 单腿64%；链目标均未达；布伦特~106；F&G 46 Neutral",
-    brentPrice: 105.62,
-    fearGreedIndex: 46,
+    note: "盘后/亚洲早盘：AMAT~497.5 ITM mark 61.15 单腳53%；COHR~288 mark 39.30 单腳64%；链目标均未达；布伦特~105.4；F&G ~45.7 Neutral",
+    brentPrice: 105.43,
+    fearGreedIndex: 45.74,
   },
   {
     id: "2026-10-12",
@@ -94,11 +94,11 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
       { symbol: "VWRA", qty: 100, avg: 173.48, mark: 193.94, unrealizedPnl: 2045.66 },
       { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 88.89, unrealizedPnl: 84.04 },
     ],
-    note: "盘前/开盘：AMAT~507 ITM mark 56.8 单腿56%；COHR~313 mark 28.2 单腿74%；链目标均未达；布伦特~105；F&G 45 Neutral",
+    note: "盘前/开盘：AMAT~507 ITM mark 56.8 单腳56%；COHR~313 mark 28.2 单腳74%；链目标均未达；布伦特~105；F&G 45 Neutral",
     brentPrice: 105.0,
     fearGreedIndex: 45,
   },
-  // Previous entries preserved in full history; this update refreshes 2026-10-13 with live spots/Greeks.
+  // Previous entries preserved in full history; this update prepends/updates 2026-10-13 only.
 ];
 
 export function getHistorySummary() {
