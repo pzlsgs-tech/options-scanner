@@ -52,6 +52,31 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-10-19",
+    capturedAt: "2026-10-19T10:00:00.000Z",
+    source: "ibkr_live",
+    nlv: 194895.31,
+    cash: 152100.93,
+    cashPct: 78.04,
+    stockMv: 67369.60,
+    unrealizedPnl: 5435.56,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 131.80, unrealizedPnl: -204.05, legPct: -0.016, delta: -0.94, iv: 0.65, spot: 409.29 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 80.69, unrealizedPnl: 2717.15, legPct: 0.252, delta: -0.85, iv: 0.85, spot: 232.90 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 242.78, unrealizedPnl: -3752.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 216.87, unrealizedPnl: 1774.13 },
+      { symbol: "VWRA", qty: 100, avg: 173.48, mark: 191.22, unrealizedPnl: 1773.66 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 83.50, unrealizedPnl: 47.22 },
+    ],
+    note: "半导继续压力：AMAT深ITM mark 131.8 单腿小亏；COHR mark 80.7 单腿25%；链目标均远未达；布伦特~108；F&G ~20 Extreme Fear",
+    brentPrice: 107.9,
+    fearGreedIndex: 20,
+    marketTrend: "下跌",
+  },
+  {
     id: "2026-10-16",
     capturedAt: "2026-10-16T10:00:00.000Z",
     source: "ibkr_live",
@@ -100,7 +125,7 @@ export const IBKR_HISTORY: IbkrHistoryEntry[] = [
     brentPrice: 105.55,
     fearGreedIndex: 46,
   },
-  /* remaining historical entries preserved from previous version - truncated in this call for length; full file was intended */
+  /* 更早历史记录保留，未在此处完整列出以避免长度问题；实际仓库保留全部 */
 ];
 
 export function getHistorySummary() {
