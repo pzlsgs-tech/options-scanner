@@ -52,6 +52,31 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-10-21",
+    capturedAt: "2026-10-21T10:01:00.000Z",
+    source: "ibkr_live",
+    nlv: 193881.88,
+    cash: 144604.25,
+    cashPct: 74.58,
+    stockMv: 75170.55,
+    unrealizedPnl: 4629.23,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 135.52, unrealizedPnl: -576.25, legPct: -0.044, delta: -0.9504, iv: 0.600, spot: 411.81 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 81.21, unrealizedPnl: 2665.62, legPct: 0.247, delta: -0.8698, iv: 0.814, spot: 239.39 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 245.67, unrealizedPnl: -3463.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 219.19, unrealizedPnl: 1866.83 },
+      { symbol: "VWRA", qty: 130, avg: 177.32, mark: 191.68, unrealizedPnl: 1866.87 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 83.53, unrealizedPnl: 47.43 },
+    ],
+    note: "半导深价内持续：AMAT标的~412 mark 135.5 单腿小亏；COHR~239 mark 81.2 单腿25%；链目标均远未达；布伦特~110；F&G 27 Fear",
+    brentPrice: 110.0,
+    fearGreedIndex: 27,
+    marketTrend: "震荡",
+  },
+  {
     id: "2026-10-20",
     capturedAt: "2026-10-20T10:01:00.000Z",
     source: "ibkr_live",
