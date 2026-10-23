@@ -52,6 +52,32 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-10-23",
+    capturedAt: "2026-10-23T04:50:00.000Z",
+    source: "ibkr_live",
+    nlv: 183330.14,
+    cash: 146935.74,
+    cashPct: 80.15,
+    stockMv: 75352.8,
+    unrealizedPnl: -5929.79,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 165.21, unrealizedPnl: -3545.31, legPct: -0.273, delta: -0.98, iv: null, spot: 375.58 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 106.49, unrealizedPnl: 137.72, legPct: 0.013, delta: -0.947, iv: null, spot: 207.82 },
+      { underlying: "MRNA", strike: 220, expiry: "2026-11-20", entry: 18.36, mark: 35.10, unrealizedPnl: -1674.39, legPct: -0.912, delta: -0.55, iv: null, spot: 202.63 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 251.20, unrealizedPnl: -2910.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 213.35, unrealizedPnl: 1633.33 },
+      { symbol: "VWRA", qty: 130, avg: 177.32, mark: 189.66, unrealizedPnl: 1604.27 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 82.40, unrealizedPnl: 39.71 },
+    ],
+    note: "IBKR重连后更新：新增MRNA 220P；AMAT/COHR深ITM扩大；半导大跌；F&G~20 Extreme Fear；布伦特~113",
+    brentPrice: 113.58,
+    fearGreedIndex: 20,
+    marketTrend: "下跌",
+  },
+  {
     id: "2026-10-21",
     capturedAt: "2026-10-21T10:01:00.000Z",
     source: "ibkr_live",
