@@ -134,13 +134,21 @@ export default function Home() {
     const regimes: string[] = market.regimes || [];
     const riskOff = regimes.some((r) => /Risk Off|Bear|Correction/i.test(r));
     const highIv = regimes.some((r) => /High IV/i.test(r));
-    const today = riskOff ? "偏空 / 谨慎" : market.spyTrend === "up" && market.qqqTrend === "up" ? "偏多" : "震荡";
+    const today = riskOff
+      ? "偏空 / 谨慎"
+      : market.spyTrend === "up" && market.qqqTrend === "up"
+        ? "偏多"
+        : "震荡";
     return {
       today,
-      weekBase: riskOff ? "基准：震荡偏弱，半导 Put 可能继续承压" : "基准：震荡为主，按链 50% 与现金纪律执行",
+      weekBase: riskOff
+        ? "基准：震荡偏弱，半导 Put 可能继续承压"
+        : "基准：震荡为主，按链 50% 与现金纪律执行",
       weekBull: "乐观：风险偏好回升，可考虑在合规下补 1 个 CSP",
       weekBear: "悲观：继续 Risk-Off，优先保现金与接股意愿",
-      action: riskOff ? "本周：不新开；管理 AMAT/COHR 链进度" : "本周：可扫描下一期 1 个 CSP（核心池）",
+      action: riskOff
+        ? "本周：不新开；管理 AMAT/COHR 链进度"
+        : "本周：可扫描下一期 1 个 CSP（核心池）",
       highIv,
       riskOff,
     };
@@ -161,10 +169,16 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
             {updatedAt && (
-              <span>更新 {new Date(updatedAt).toLocaleString("zh-CN")}{refreshing && <span className="ml-1 text-sky-400">刷新中…</span>}</span>
+              <span>
+                更新 {new Date(updatedAt).toLocaleString("zh-CN")}
+                {refreshing && <span className="ml-1 text-sky-400">刷新中…</span>}
+              </span>
             )}
-            <button onClick={() => fetchScan({ silent: hasData.current })} disabled={loading || refreshing}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50">
+            <button
+              onClick={() => fetchScan({ silent: hasData.current })}
+              disabled={loading || refreshing}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50"
+            >
               <RefreshCw className={`w-4 h-4 ${loading || refreshing ? "animate-spin" : ""}`} /> 刷新
             </button>
           </div>
@@ -173,10 +187,13 @@ export default function Home() {
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
-              <button key={t.id} onClick={() => setTab(t.id)}
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${
                   tab === t.id ? "bg-sky-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
-                }`}>
+                }`}
+              >
                 <Icon className="w-3.5 h-3.5" /> {t.label}
               </button>
             );
@@ -185,9 +202,15 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {error && <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">错误: {error}</div>}
+        {error && (
+          <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">
+            错误: {error}
+          </div>
+        )}
         {loading && !hasData.current && (
-          <div className="flex justify-center py-20 text-slate-400 gap-3"><RefreshCw className="w-6 h-6 animate-spin" /> 加载中...</div>
+          <div className="flex justify-center py-20 text-slate-400 gap-3">
+            <RefreshCw className="w-6 h-6 animate-spin" /> 加载中...
+          </div>
         )}
 
         {(!loading || hasData.current) && !error && (
@@ -196,11 +219,25 @@ export default function Home() {
               <section className="space-y-5">
                 <h2 className="text-lg font-semibold">第一层：市场环境</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div className={`rounded-2xl border-2 p-6 ${(brent ?? 0) >= 100 ? "bg-orange-950/60 border-orange-500" : "bg-emerald-950/50 border-emerald-500"}`}>
+                  <div
+                    className={`rounded-2xl border-2 p-6 ${
+                      (brent ?? 0) >= 100
+                        ? "bg-orange-950/60 border-orange-500"
+                        : "bg-emerald-950/50 border-emerald-500"
+                    }`}
+                  >
                     <div className="text-sm mb-1">布伦特原油 Brent</div>
-                    <div className="text-5xl font-black text-orange-400">{brent != null ? `$${Number(brent).toFixed(2)}` : "—"}</div>
+                    <div className="text-5xl font-black text-orange-400">
+                      {brent != null ? `$${Number(brent).toFixed(2)}` : "—"}
+                    </div>
                   </div>
-                  <div className={`rounded-2xl border-2 p-6 ${(fgi ?? 50) <= 44 ? "bg-rose-950/60 border-rose-400" : "bg-slate-900 border-slate-500"}`}>
+                  <div
+                    className={`rounded-2xl border-2 p-6 ${
+                      (fgi ?? 50) <= 44
+                        ? "bg-rose-950/60 border-rose-400"
+                        : "bg-slate-900 border-slate-500"
+                    }`}
+                  >
                     <div className="text-sm mb-1">Fear & Greed Index</div>
                     <div className="text-5xl font-black">{fgi != null ? fgi : "—"}</div>
                     <div className="mt-2 text-xl font-bold">{fgiLabel}</div>
@@ -238,12 +275,28 @@ export default function Home() {
               <section className="space-y-4">
                 <h2 className="text-lg font-semibold">第三/四层</h2>
                 <div className="flex gap-3">
-                  <input type="number" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
-                  <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索" className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
+                  <input
+                    type="number"
+                    value={minScore}
+                    onChange={(e) => setMinScore(Number(e.target.value))}
+                    className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="搜索"
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm"
+                  />
                 </div>
                 {filtered.slice(0, 30).map((r) => (
-                  <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-3 items-center">
-                    <div className="font-bold min-w-[100px]">{r.symbol} <span className="text-sky-400">{r.aiScore}</span></div>
+                  <div
+                    key={r.symbol}
+                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-3 items-center"
+                  >
+                    <div className="font-bold min-w-[100px]">
+                      {r.symbol} <span className="text-sky-400">{r.aiScore}</span>
+                    </div>
                     <div className="text-xs text-sky-300 flex-1">{r.recommendedAction}</div>
                   </div>
                 ))}
@@ -256,20 +309,30 @@ export default function Home() {
                 <div className="grid sm:grid-cols-4 gap-3">
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">NLV</div>
-                    <div className="text-xl font-bold">${ibkr.balances?.netLiquidation?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-xl font-bold">
+                      ${ibkr.balances?.netLiquidation?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">现金</div>
-                    <div className="text-xl font-bold">${ibkr.balances?.cashBalance?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-xl font-bold">
+                      ${ibkr.balances?.cashBalance?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
                     <div className="text-xs text-emerald-400">{ibkr.balances?.cashPct?.toFixed(1)}%</div>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">股票市值</div>
-                    <div className="text-xl font-bold">${ibkr.balances?.stockMarketValue?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-xl font-bold">
+                      ${ibkr.balances?.stockMarketValue?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">未实现盈亏</div>
-                    <div className={`text-xl font-bold ${(ibkr.balances?.unrealizedPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    <div
+                      className={`text-xl font-bold ${
+                        (ibkr.balances?.unrealizedPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
                       ${ibkr.balances?.unrealizedPnl?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </div>
                   </div>
@@ -277,28 +340,47 @@ export default function Home() {
                 {ibkr.riskFlags?.length > 0 && (
                   <div className="space-y-1">
                     {ibkr.riskFlags.map((w: string, i: number) => (
-                      <div key={i} className="text-amber-200 text-sm">⚠ {w}</div>
+                      <div key={i} className="text-amber-200 text-sm">
+                        ⚠ {w}
+                      </div>
                     ))}
                   </div>
                 )}
                 <h3 className="font-semibold text-slate-300">股票 / ETF</h3>
                 {(ibkr.stocks?.length ? ibkr.stocks : []).map((s: any) => (
-                  <div key={s.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm flex flex-wrap gap-x-4 gap-y-1 items-center">
+                  <div
+                    key={s.symbol}
+                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm flex flex-wrap gap-x-4 gap-y-1 items-center"
+                  >
                     <span className="font-bold min-w-[64px]">{s.symbol}</span>
                     <span className="text-slate-400">{Number(s.qty).toFixed(s.qty % 1 ? 2 : 0)} 股</span>
                     <span>成本 ${Number(s.avg).toFixed(2)}</span>
                     <span>现价 ${Number(s.price).toFixed(2)}</span>
-                    <span>市值 ${Number(s.value ?? s.price * s.qty).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    <span>
+                      市值 $
+                      {Number(s.value ?? s.price * s.qty).toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}
+                    </span>
                     <span className={Number(s.pnl) >= 0 ? "text-emerald-400" : "text-red-400"}>
-                      未实现 ${Number(s.pnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      未实现 $
+                      {Number(s.pnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </span>
                   </div>
                 ))}
                 <h3 className="font-semibold text-slate-300">空头 Put</h3>
                 {(ibkr.shortPuts?.length ? ibkr.shortPuts : []).map((p: any) => (
-                  <div key={p.description || p.underlying} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm space-y-1">
-                    <div className="font-bold">{p.underlying} {p.strike}P · DTE {p.dte}</div>
-                    <div>入场 {Number(p.entryPremium).toFixed(2)} → 现价 {Number(p.currentPremium).toFixed(2)} · 单腿 {(Number(p.profitPctOfCredit) * 100).toFixed(0)}%</div>
+                  <div
+                    key={p.description || p.underlying}
+                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm space-y-1"
+                  >
+                    <div className="font-bold">
+                      {p.underlying} {p.strike}P · DTE {p.dte}
+                    </div>
+                    <div>
+                      入场 {Number(p.entryPremium).toFixed(2)} → 现价 {Number(p.currentPremium).toFixed(2)} ·
+                      单腿 {(Number(p.profitPctOfCredit) * 100).toFixed(0)}%
+                    </div>
                     <div className="text-slate-400">
                       Δ {p.delta != null ? Number(p.delta).toFixed(2) : "—"}
                       {" · "}IV {p.iv != null ? `${(Number(p.iv) * 100).toFixed(0)}%` : "—"}
@@ -306,7 +388,8 @@ export default function Home() {
                     </div>
                     {p.chain && (
                       <div className={p.chain.takeProfitHit ? "text-emerald-400 font-semibold" : "text-slate-400"}>
-                        链目标 ≤${Number(p.chain.targetClosePrice).toFixed(2)} · 进度 {(Number(p.chain.progressToTarget) * 100).toFixed(0)}%
+                        链目标 ≤${Number(p.chain.targetClosePrice).toFixed(2)} · 进度{" "}
+                        {(Number(p.chain.progressToTarget) * 100).toFixed(0)}%
                       </div>
                     )}
                   </div>
@@ -321,7 +404,9 @@ export default function Home() {
                   <div key={p.underlying} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm">
                     <div className="font-bold">{p.underlying}</div>
                     <div className="text-slate-400 mt-1">
-                      {p.chain?.takeProfitHit ? "已达链级止盈，可考虑减仓/平仓" : "未达链 50%，默认继续持有，不因单腿回撤急平"}
+                      {p.chain?.takeProfitHit
+                        ? "已达链级止盈，可考虑减仓/平仓"
+                        : "未达链 50%，默认继续持有，不因单腿回撤急平"}
                     </div>
                   </div>
                 ))}
@@ -355,48 +440,73 @@ export default function Home() {
                 <p className="text-xs text-slate-500">
                   基于当前 IBKR 持仓标的（股票 + 空头 Put 标的）拉取近期新闻摘要。数据源：Yahoo Finance。
                   {newsData?.updatedAt && (
-                    <span className="ml-2">更新于 {new Date(newsData.updatedAt).toLocaleString("zh-CN")}</span>
+                    <span className="ml-2">
+                      更新于 {new Date(newsData.updatedAt).toLocaleString("zh-CN")}
+                    </span>
                   )}
                 </p>
                 {newsError && (
-                  <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3 text-sm">{newsError}</div>
+                  <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3 text-sm">
+                    {newsError}
+                  </div>
                 )}
                 {newsLoading && !newsData && (
                   <div className="flex justify-center py-12 text-slate-400 gap-3">
                     <RefreshCw className="w-5 h-5 animate-spin" /> 加载新闻中…
                   </div>
                 )}
-                {newsData?.symbols?.length > 0 && (
+                {(newsData?.symbols?.length ?? 0) > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {newsData.symbols.map((s: string) => (
-                      <span key={s} className="text-xs px-2 py-1 rounded-full bg-sky-950/50 border border-sky-800 text-sky-300">{s}</span>
+                    {newsData!.symbols.map((s: string) => (
+                      <span
+                        key={s}
+                        className="text-xs px-2 py-1 rounded-full bg-sky-950/50 border border-sky-800 text-sky-300"
+                      >
+                        {s}
+                      </span>
                     ))}
                   </div>
                 )}
                 <div className="space-y-4">
                   {(newsData?.items || []).map((group: any) => (
-                    <div key={group.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <div
+                      key={group.symbol}
+                      className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3"
+                    >
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-lg text-sky-300">{group.symbol}</span>
                         {group.name && <span className="text-sm text-slate-500">{group.name}</span>}
-                        <span className="text-xs text-slate-500 ml-auto">{(group.news || []).length} 条</span>
+                        <span className="text-xs text-slate-500 ml-auto">
+                          {(group.news || []).length} 条
+                        </span>
                       </div>
                       {(group.news || []).length === 0 && (
                         <div className="text-sm text-slate-500">暂无重大新闻</div>
                       )}
                       <ul className="space-y-3">
                         {(group.news || []).map((n: any, i: number) => (
-                          <li key={i} className="border-t border-slate-800 pt-3 first:border-0 first:pt-0">
-                            <a href={n.link || "#"} target="_blank" rel="noopener noreferrer"
-                              className="text-sm font-medium text-slate-100 hover:text-sky-300 leading-snug">
+                          <li
+                            key={i}
+                            className="border-t border-slate-800 pt-3 first:border-0 first:pt-0"
+                          >
+                            <a
+                              href={n.link || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-medium text-slate-100 hover:text-sky-300 leading-snug"
+                            >
                               {n.title}
                             </a>
                             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
                               {n.publisher && <span>{n.publisher}</span>}
-                              {n.publishedAt && <span>{new Date(n.publishedAt).toLocaleString("zh-CN")}</span>}
+                              {n.publishedAt && (
+                                <span>{new Date(n.publishedAt).toLocaleString("zh-CN")}</span>
+                              )}
                             </div>
                             {n.summary && (
-                              <p className="mt-1.5 text-xs text-slate-400 leading-relaxed line-clamp-3">{n.summary}</p>
+                              <p className="mt-1.5 text-xs text-slate-400 leading-relaxed line-clamp-3">
+                                {n.summary}
+                              </p>
                             )}
                           </li>
                         ))}
@@ -414,7 +524,9 @@ export default function Home() {
               <section className="space-y-4">
                 <h2 className="text-lg font-semibold">趋势预测（当天 + 未来 7 天）</h2>
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-sm">
-                  <div>当日：<strong>{trendForecast.today}</strong></div>
+                  <div>
+                    当日：<strong>{trendForecast.today}</strong>
+                  </div>
                   <div className="text-slate-400">{trendForecast.weekBase}</div>
                   <div className="text-emerald-400/90">{trendForecast.weekBull}</div>
                   <div className="text-rose-400/90">{trendForecast.weekBear}</div>
@@ -428,8 +540,13 @@ export default function Home() {
                 <h2 className="text-lg font-semibold">历史账本</h2>
                 <div className="flex flex-wrap gap-2">
                   {(["全部", "成交", "每日持仓", "账户快照"] as const).map((f) => (
-                    <button key={f} onClick={() => setHistFilter(f)}
-                      className={`px-3 py-1 rounded-lg text-sm ${histFilter === f ? "bg-sky-600 text-white" : "bg-slate-800 text-slate-400"}`}>
+                    <button
+                      key={f}
+                      onClick={() => setHistFilter(f)}
+                      className={`px-3 py-1 rounded-lg text-sm ${
+                        histFilter === f ? "bg-sky-600 text-white" : "bg-slate-800 text-slate-400"
+                      }`}
+                    >
                       {f}
                     </button>
                   ))}
@@ -438,8 +555,14 @@ export default function Home() {
                   <table className="min-w-full text-xs">
                     <thead className="bg-slate-900 text-slate-400">
                       <tr>
-                        {["类型", "时间", "标的", "资产", "动作", "开平", "方向", "到期", "行权价", "数量", "成交价", "标的价", "权利金", "已实现", "未实现", "市值", "NLV", "现金", "IV", "Δ", "趋势", "备注", "风险"].map((h) => (
-                          <th key={h} className="px-2 py-2 text-left whitespace-nowrap">{h}</th>
+                        {[
+                          "类型", "时间", "标的", "资产", "动作", "开平", "方向", "到期", "行权价", "数量",
+                          "成交价", "标的价", "权利金", "已实现", "未实现", "市值", "NLV", "现金", "IV", "Δ",
+                          "趋势", "备注", "风险",
+                        ].map((h) => (
+                          <th key={h} className="px-2 py-2 text-left whitespace-nowrap">
+                            {h}
+                          </th>
                         ))}
                       </tr>
                     </thead>
@@ -447,7 +570,9 @@ export default function Home() {
                       {ledgerRows.slice(0, 200).map((r) => (
                         <tr key={r.id} className="border-t border-slate-800 align-top">
                           <td className="px-2 py-1.5 whitespace-nowrap">{r.recordType}</td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">{r.datetime?.slice(0, 16)?.replace("T", " ")}</td>
+                          <td className="px-2 py-1.5 whitespace-nowrap">
+                            {r.datetime?.slice(0, 16)?.replace("T", " ")}
+                          </td>
                           <td className="px-2 py-1.5 font-medium">{r.symbol}</td>
                           <td className="px-2 py-1.5">{r.assetType}</td>
                           <td className="px-2 py-1.5">{r.action}</td>
@@ -459,16 +584,42 @@ export default function Home() {
                           <td className="px-2 py-1.5">{fmt(r.fillPrice)}</td>
                           <td className="px-2 py-1.5">{fmt(r.underlyingPrice)}</td>
                           <td className="px-2 py-1.5">{fmt(r.optionPremium)}</td>
-                          <td className={`px-2 py-1.5 ${(r.realizedPnl ?? 0) > 0 ? "text-emerald-400" : (r.realizedPnl ?? 0) < 0 ? "text-red-400" : ""}`}>{fmt(r.realizedPnl, 0)}</td>
-                          <td className={`px-2 py-1.5 ${(r.unrealizedPnl ?? 0) > 0 ? "text-emerald-400" : (r.unrealizedPnl ?? 0) < 0 ? "text-red-400" : ""}`}>{fmt(r.unrealizedPnl, 0)}</td>
+                          <td
+                            className={`px-2 py-1.5 ${
+                              (r.realizedPnl ?? 0) > 0
+                                ? "text-emerald-400"
+                                : (r.realizedPnl ?? 0) < 0
+                                  ? "text-red-400"
+                                  : ""
+                            }`}
+                          >
+                            {fmt(r.realizedPnl, 0)}
+                          </td>
+                          <td
+                            className={`px-2 py-1.5 ${
+                              (r.unrealizedPnl ?? 0) > 0
+                                ? "text-emerald-400"
+                                : (r.unrealizedPnl ?? 0) < 0
+                                  ? "text-red-400"
+                                  : ""
+                            }`}
+                          >
+                            {fmt(r.unrealizedPnl, 0)}
+                          </td>
                           <td className="px-2 py-1.5">{fmt(r.marketValue, 0)}</td>
                           <td className="px-2 py-1.5">{fmt(r.nlv, 0)}</td>
                           <td className="px-2 py-1.5">{fmt(r.usdCash, 0)}</td>
                           <td className="px-2 py-1.5">{fmtPct(r.iv)}</td>
-                          <td className="px-2 py-1.5">{r.delta != null ? r.delta.toFixed(2) : ""}</td>
+                          <td className="px-2 py-1.5">
+                            {r.delta != null ? r.delta.toFixed(2) : ""}
+                          </td>
                           <td className="px-2 py-1.5">{r.marketTrend}</td>
-                          <td className="px-2 py-1.5 min-w-[200px] max-w-[360px] whitespace-normal break-words text-slate-300">{r.reason}</td>
-                          <td className="px-2 py-1.5 min-w-[160px] max-w-[280px] whitespace-normal break-words text-slate-400">{r.riskReview}</td>
+                          <td className="px-2 py-1.5 min-w-[200px] max-w-[360px] whitespace-normal break-words text-slate-300">
+                            {r.reason}
+                          </td>
+                          <td className="px-2 py-1.5 min-w-[160px] max-w-[280px] whitespace-normal break-words text-slate-400">
+                            {r.riskReview}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
