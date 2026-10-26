@@ -86,6 +86,7 @@ export function scoreUnderlying(params: {
   const { price, changePercent, volume, typicalOptionsVolume, sector } = params;
   const flags: string[] = [];
 
+  // 质量/流动性近似：真正「愿持有」由池子层级主导，此处只做基础过滤
   let fundamentalScore = 50;
   if (typicalOptionsVolume === "Very High") fundamentalScore = 88;
   else if (typicalOptionsVolume === "High") fundamentalScore = 75;
@@ -145,8 +146,8 @@ export function scoreOptionLayer(params: {
   const dteIdeal = true;
   const deltaIdeal = ivRankProxy >= 50;
 
-  if (ivRankProxy >= 60) notes.push("IV Rank代理≥60，适合卖权利金");
-  else if (ivRankProxy < 35) notes.push("IV偏低，慎卖裸权利金");
+  if (ivRankProxy >= 60) notes.push("IV Rank代理≥60，权利金环境较好（仅补偿）");
+  else if (ivRankProxy < 35) notes.push("IV偏低，权利金薄");
   if (liquidityScore < 60) notes.push("期权流动性一般");
 
   const premiumQuality = Math.round(
@@ -160,9 +161,10 @@ export function scoreOptionLayer(params: {
 
   const yieldProxy = Math.round(Math.min(100, ivRankProxy * 0.7 + (price > 30 ? 15 : 5)));
 
+  // 权利金层权重降低：不因高 IV 单独抬高到主导地位
   const total = Math.round(
-    (ivRankProxy >= 55 ? 85 : ivRankProxy) * 0.35 +
-      liquidityScore * 0.3 +
+    (ivRankProxy >= 55 ? 80 : ivRankProxy) * 0.3 +
+      liquidityScore * 0.35 +
       premiumQuality * 0.2 +
       yieldProxy * 0.15
   );
@@ -337,7 +339,7 @@ export function scoreRollOpportunity(params: {
 
   let recommendation: RollScore["recommendation"] = "观察";
   if (chain?.takeProfitHit) recommendation = "获利了结";
-  else if (!chain && legPct >= 0.5) recommendation = "获利了结"; // 无链条数据时退回单腿
+  else if (!chain && legPct >= 0.5) recommendation = "获利了结";
   else if (score >= 75) recommendation = "Roll";
   else if (score < 45) recommendation = "不处理";
 
@@ -359,6 +361,7 @@ export function scoreRollOpportunity(params: {
   };
 }
 
+/** 持有质量优先：股票分权重最高，权利金/期权层次之 */
 export function finalScore(params: {
   marketWeight: number;
   stockScore: number;
@@ -375,10 +378,10 @@ export function finalScore(params: {
   const roll = params.rollScore ?? 50;
 
   const total = Math.round(
-    market * 0.2 +
-      stock * 0.2 +
-      option * 0.2 +
-      premium * 0.15 +
+    market * 0.15 +
+      stock * 0.35 +
+      option * 0.15 +
+      premium * 0.1 +
       portfolio * 0.15 +
       roll * 0.1
   );
