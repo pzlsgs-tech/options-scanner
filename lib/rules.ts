@@ -1,6 +1,11 @@
 /**
  * Options Scanner Pro — CSP / Sell-Put 系统化交易原则
  * 来源：账户实践 + 链级止盈 + Sell-Put 系统化策略笔记
+ *
+ * 池子复盘（2026-10-30）：
+ * - 核心新增 AMZN、BRK.B（愿接货质量仓；AMZN 须严控单票占用）
+ * - 卫星新增 MELI、ABNB（波动/估值更高，不默认核心）
+ * - GOOGL 维持核心
  */
 
 export type PoolTier = "core" | "satellite" | "caution" | "standard";
@@ -63,6 +68,7 @@ export const MACRO_FILTERS = {
 } as const;
 
 export const POOL: Record<string, PoolTier> = {
+  // —— 半导/设备（核心，轮换用，非同时铺满）——
   AMAT: "core",
   COHR: "core",
   MU: "core",
@@ -78,19 +84,13 @@ export const POOL: Record<string, PoolTier> = {
   AVGO: "core",
   TSM: "core",
   GLW: "core",
-  ALAB: "satellite",
-  LITE: "satellite",
-  CRWV: "satellite",
-  RKLB: "caution",
-  AAOI: "caution",
-  CRDO: "caution",
-  SPCX: "caution",
+  // —— 质量蓝筹 / 平台（核心）——
   AAPL: "core",
   MSFT: "core",
-  NVDA: "satellite",
   META: "core",
   GOOGL: "core",
-  AMD: "satellite",
+  AMZN: "core", // 2026-10-30：愿接货则核心；单票 assignment 须 ≤10% NLV
+  "BRK.B": "core", // 2026-10-30：质量仓，权利金可能偏薄
   JPM: "core",
   V: "core",
   MA: "core",
@@ -101,6 +101,19 @@ export const POOL: Record<string, PoolTier> = {
   UNH: "core",
   XOM: "core",
   CVX: "core",
+  // —— 卫星：波动更高 / 接货门槛更高 ——
+  NVDA: "satellite",
+  AMD: "satellite",
+  ALAB: "satellite",
+  LITE: "satellite",
+  CRWV: "satellite",
+  MELI: "satellite", // 2026-10-30
+  ABNB: "satellite", // 2026-10-30
+  // —— 慎做 ——
+  RKLB: "caution",
+  AAOI: "caution",
+  CRDO: "caution",
+  SPCX: "caution",
 };
 
 export function getPoolTier(symbol: string): PoolTier {
@@ -201,7 +214,7 @@ export const PRINCIPLES = [
     id: "pools",
     title: "核心 / 卫星 / 慎做",
     detail:
-      "核心：AMAT COHR MU LRCX KLAC ARM MRVL WDC STX TER INTC DELL（及 AVGO TSM GLW 等）。卫星：ALAB LITE CRWV。慎做：RKLB AAOI CRDO SPCX。",
+      "核心半导轮换：AMAT COHR MU LRCX KLAC ARM MRVL WDC STX TER INTC DELL AVGO TSM GLW。质量核心：AAPL MSFT META GOOGL AMZN BRK.B JPM V MA COST WMT HD MCD UNH XOM CVX。卫星：NVDA AMD ALAB LITE CRWV MELI ABNB。慎做：RKLB AAOI CRDO SPCX。每周复盘：不合格移出，合格移入；不因荐股榜自动入核心。",
   },
 ] as const;
 
