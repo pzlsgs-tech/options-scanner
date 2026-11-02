@@ -52,6 +52,32 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-11-02",
+    capturedAt: "2026-11-02T10:01:00.000Z",
+    source: "ibkr_live",
+    nlv: 190417.68,
+    cash: 147026.13,
+    cashPct: 77.21,
+    stockMv: 75662.24,
+    unrealizedPnl: 940.57,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 150.67, unrealizedPnl: -2090.75, legPct: -0.161, delta: -0.98, iv: 0.80, spot: 399.8 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 101.10, unrealizedPnl: 676.40, legPct: 0.063, delta: -0.95, iv: 0.85, spot: 215.3 },
+      { underlying: "MRNA", strike: 220, expiry: "2026-11-20", entry: 18.36, mark: 17.48, unrealizedPnl: 88.09, legPct: 0.048, delta: -0.42, iv: 0.82, spot: 220.8 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 256.97, unrealizedPnl: -2333.43 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 207.65, unrealizedPnl: 1405.33 },
+      { symbol: "VWRA", qty: 130, avg: 177.32, mark: 189.40, unrealizedPnl: 1570.47 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 78.12, unrealizedPnl: 10.48 },
+    ],
+    note: "周一盘前：NLV路降至~19.04万；AMAT mark上升浮亏扩大，COHR mark回升减少浮盈；MRNA稳定；F&G 26 Fear；布伦特~108.7",
+    brentPrice: 108.7,
+    fearGreedIndex: 26,
+    marketTrend: "震荡",
+  },
+  {
     id: "2026-10-30",
     capturedAt: "2026-10-30T10:01:00.000Z",
     source: "ibkr_live",
