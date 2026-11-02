@@ -59,6 +59,9 @@ export default function Home() {
   const [newsData, setNewsData] = useState<{ updatedAt: string; symbols: string[]; items: any[] } | null>(null);
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsError, setNewsError] = useState<string | null>(null);
+  const [monitorData, setMonitorData] = useState<{ updatedAt: string; items: any[]; note?: string } | null>(null);
+  const [monitorLoading, setMonitorLoading] = useState(false);
+  const [monitorError, setMonitorError] = useState<string | null>(null);
   const hasData = useRef(false);
 
   const fetchScan = useCallback(async (opts?: { silent?: boolean }) => {
@@ -107,6 +110,26 @@ export default function Home() {
         if (!cancelled) setNewsError(e.message || "新闻加载失败");
       } finally {
         if (!cancelled) setNewsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "trend") return;
+    let cancelled = false;
+    (async () => {
+      setMonitorLoading(true);
+      setMonitorError(null);
+      try {
+        const res = await fetch("/api/holdings-monitor", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!cancelled) setMonitorData(data);
+      } catch (e: any) {
+        if (!cancelled) setMonitorError(e.message || "持仓监控加载失败");
+      } finally {
+        if (!cancelled) setMonitorLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -163,7 +186,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Options Scanner Pro</h1>
-              <p className="text-xs text-slate-400">持有优先 · 链级50% · 完整历史账本</p>
+              <p className="text-xs text-slate-400">持有优先 · 链级50% · 持仓动态监控</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
@@ -202,9 +225,7 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {error && (
-          <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">
-            错误: {error}
-          </div>
+          <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3">错误: {error}</div>
         )}
         {loading && !hasData.current && (
           <div className="flex justify-center py-20 text-slate-400 gap-3">
@@ -256,7 +277,7 @@ export default function Home() {
                   <div><span className="text-sky-400 font-semibold">⑤ 想好后路</span>：被行权后持股、卖 Covered Call，还是逻辑破坏止损</div>
                 </div>
                 <div className="flex gap-3">
-                  <input type="number" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" title="最低综合分" />
+                  <input type="number" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
                   <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索标的" className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
                 </div>
                 {filtered.slice(0, 30).map((r) => {
@@ -264,7 +285,6 @@ export default function Home() {
                   const holdOk = tier === "core";
                   const holdCaution = tier === "caution";
                   const iv = r.ivRankProxy ?? r.optionLayer?.ivRankProxy;
-                  const maxLossPct = r.maxAssignmentPct;
                   return (
                     <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
                       <div className="flex flex-wrap gap-3 items-center">
@@ -274,23 +294,12 @@ export default function Home() {
                       </div>
                       <div className="grid sm:grid-cols-2 gap-1.5 text-xs">
                         <div className={holdOk ? "text-emerald-400" : holdCaution ? "text-rose-400" : "text-amber-300"}>
-                          ① 愿持有：{holdOk ? "核心池 · 优先考虑接货" : holdCaution ? "慎做 · 默认不接货" : "卫星/常规 · 需自行确认是否愿持有 6–12 月"}
+                          ① 愿持有：{holdOk ? "核心池" : holdCaution ? "慎做" : "卫星/常规 · 需自行确认"}
                         </div>
-                        <div className="text-slate-400">
-                          ② 权利金：IV代理 {iv != null ? iv : "—"}（仅补偿，非选股理由）
-                          {r.playbookNotes?.length ? ` · ${r.playbookNotes[0]}` : ""}
-                        </div>
-                        <div className="text-slate-400">
-                          ③ 催化剂：{r.catalystNote || "需人工确认到期前财报/数据/监管（避开 7 天内财报）"}
-                        </div>
-                        <div className="text-slate-400">
-                          ④ 仓位：{maxLossPct != null
-                            ? `估算 1 张 ATM 约占 NLV ${Number(maxLossPct).toFixed(1)}%（规则 assignment ≤10%，保证金 ≤15%）`
-                            : "单票 assignment ≤10% NLV · 保证金 ≤15% · 高波动再缩小"}
-                        </div>
-                        <div className="text-slate-400 sm:col-span-2">
-                          ⑤ 后路：{r.exitPlan || "默认愿接货后持有；可备兑；逻辑破坏则止损，不为扳本盲目 Roll"}
-                        </div>
+                        <div className="text-slate-400">② 权利金：IV代理 {iv != null ? iv : "—"}（仅补偿）</div>
+                        <div className="text-slate-400">③ 催化剂：{r.catalystNote || "需人工确认财报/监管"}</div>
+                        <div className="text-slate-400">④ 仓位：assignment ≤10% NLV · 保证金 ≤15%</div>
+                        <div className="text-slate-400 sm:col-span-2">⑤ 后路：{r.exitPlan || "接货持有 / 备兑 / 逻辑破坏止损"}</div>
                       </div>
                     </div>
                   );
@@ -322,28 +331,21 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-                {ibkr.riskFlags?.length > 0 && (
-                  <div className="space-y-1">{ibkr.riskFlags.map((w: string, i: number) => (
-                    <div key={i} className="text-amber-200 text-sm">⚠ {w}</div>
-                  ))}</div>
-                )}
                 <h3 className="font-semibold text-slate-300">股票 / ETF</h3>
-                {(ibkr.stocks?.length ? ibkr.stocks : []).map((s: any) => (
-                  <div key={s.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm flex flex-wrap gap-x-4 gap-y-1 items-center">
-                    <span className="font-bold min-w-[64px]">{s.symbol}</span>
-                    <span className="text-slate-400">{Number(s.qty).toFixed(s.qty % 1 ? 2 : 0)} 股</span>
-                    <span>成本 ${Number(s.avg).toFixed(2)}</span>
+                {(ibkr.stocks || []).map((s: any) => (
+                  <div key={s.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm flex flex-wrap gap-x-4 gap-y-1">
+                    <span className="font-bold">{s.symbol}</span>
+                    <span>{Number(s.qty).toFixed(s.qty % 1 ? 2 : 0)} 股</span>
                     <span>现价 ${Number(s.price).toFixed(2)}</span>
-                    <span>市值 ${Number(s.value ?? s.price * s.qty).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                     <span className={Number(s.pnl) >= 0 ? "text-emerald-400" : "text-red-400"}>未实现 ${Number(s.pnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                   </div>
                 ))}
                 <h3 className="font-semibold text-slate-300">空头 Put</h3>
-                {(ibkr.shortPuts?.length ? ibkr.shortPuts : []).map((p: any) => (
+                {(ibkr.shortPuts || []).map((p: any) => (
                   <div key={p.description || p.underlying} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm space-y-1">
                     <div className="font-bold">{p.underlying} {p.strike}P · DTE {p.dte}</div>
-                    <div>入场 {Number(p.entryPremium).toFixed(2)} → 现价 {Number(p.currentPremium).toFixed(2)} · 单腿 {(Number(p.profitPctOfCredit) * 100).toFixed(0)}%</div>
-                    <div className="text-slate-400">Δ {p.delta != null ? Number(p.delta).toFixed(2) : "—"} · IV {p.iv != null ? `${(Number(p.iv) * 100).toFixed(0)}%` : "—"} · 标的 {p.spot ?? "—"}</div>
+                    <div>入场 {Number(p.entryPremium).toFixed(2)} → 现价 {Number(p.currentPremium).toFixed(2)}</div>
+                    <div className="text-slate-400">Δ {p.delta != null ? Number(p.delta).toFixed(2) : "—"} · IV {p.iv != null ? `${(Number(p.iv) * 100).toFixed(0)}%` : "—"}</div>
                     {p.chain && (
                       <div className={p.chain.takeProfitHit ? "text-emerald-400 font-semibold" : "text-slate-400"}>
                         链目标 ≤${Number(p.chain.targetClosePrice).toFixed(2)} · 进度 {(Number(p.chain.progressToTarget) * 100).toFixed(0)}%
@@ -360,7 +362,7 @@ export default function Home() {
                 {(ibkr.shortPuts || []).map((p: any) => (
                   <div key={p.underlying} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm">
                     <div className="font-bold">{p.underlying}</div>
-                    <div className="text-slate-400 mt-1">{p.chain?.takeProfitHit ? "已达链级止盈，可考虑减仓/平仓" : "未达链 50%，默认继续持有，不因单腿回撤急平"}</div>
+                    <div className="text-slate-400 mt-1">{p.chain?.takeProfitHit ? "已达链级止盈，可考虑减仓/平仓" : "未达链 50%，默认继续持有"}</div>
                   </div>
                 ))}
               </section>
@@ -368,65 +370,132 @@ export default function Home() {
 
             {tab === "news" && (
               <section className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold">持仓相关新闻</h2>
-                  <button
-                    onClick={async () => {
-                      setNewsLoading(true); setNewsError(null);
-                      try {
-                        const res = await fetch("/api/news", { cache: "no-store" });
-                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                        setNewsData(await res.json());
-                      } catch (e: any) { setNewsError(e.message || "新闻加载失败"); }
-                      finally { setNewsLoading(false); }
-                    }}
-                    disabled={newsLoading}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${newsLoading ? "animate-spin" : ""}`} /> 刷新新闻
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500">基于当前 IBKR 持仓标的拉取近期新闻。数据源：Yahoo Finance。{newsData?.updatedAt && (<span className="ml-2">更新于 {new Date(newsData.updatedAt).toLocaleString("zh-CN")}</span>)}</p>
+                <h2 className="text-lg font-semibold">持仓相关新闻</h2>
                 {newsError && <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3 text-sm">{newsError}</div>}
-                {newsLoading && !newsData && <div className="flex justify-center py-12 text-slate-400 gap-3"><RefreshCw className="w-5 h-5 animate-spin" /> 加载新闻中…</div>}
-                {(newsData?.symbols?.length ?? 0) > 0 && (
-                  <div className="flex flex-wrap gap-2">{newsData!.symbols.map((s: string) => (
-                    <span key={s} className="text-xs px-2 py-1 rounded-full bg-sky-950/50 border border-sky-800 text-sky-300">{s}</span>
-                  ))}</div>
-                )}
-                <div className="space-y-4">
-                  {(newsData?.items || []).map((group: any) => (
-                    <div key={group.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-lg text-sky-300">{group.symbol}</span>
-                        {group.name && <span className="text-sm text-slate-500">{group.name}</span>}
-                        <span className="text-xs text-slate-500 ml-auto">{(group.news || []).length} 条</span>
-                      </div>
-                      {(group.news || []).length === 0 && <div className="text-sm text-slate-500">暂无重大新闻</div>}
-                      <ul className="space-y-3">
-                        {(group.news || []).map((n: any, i: number) => (
-                          <li key={i} className="border-t border-slate-800 pt-3 first:border-0 first:pt-0">
-                            <a href={n.link || "#"} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-slate-100 hover:text-sky-300 leading-snug">{n.title}</a>
-                            <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-slate-500">{n.publisher && <span>{n.publisher}</span>}{n.publishedAt && <span>{new Date(n.publishedAt).toLocaleString("zh-CN")}</span>}</div>
-                            {n.summary && <p className="mt-1.5 text-xs text-slate-400 leading-relaxed line-clamp-3">{n.summary}</p>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
+                {newsLoading && !newsData && <div className="flex justify-center py-12 text-slate-400 gap-3"><RefreshCw className="w-5 h-5 animate-spin" /> 加载中…</div>}
+                {(newsData?.items || []).map((group: any) => (
+                  <div key={group.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+                    <div className="font-bold text-sky-300">{group.symbol}</div>
+                    {(group.news || []).slice(0, 3).map((n: any, i: number) => (
+                      <a key={i} href={n.link || "#"} target="_blank" rel="noopener noreferrer" className="block text-sm hover:text-sky-300">{n.title}</a>
+                    ))}
+                  </div>
+                ))}
               </section>
             )}
 
-            {tab === "trend" && trendForecast && (
-              <section className="space-y-4">
-                <h2 className="text-lg font-semibold">趋势预测（当天 + 未来 7 天）</h2>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-sm">
-                  <div>当日：<strong>{trendForecast.today}</strong></div>
-                  <div className="text-slate-400">{trendForecast.weekBase}</div>
-                  <div className="text-emerald-400/90">{trendForecast.weekBull}</div>
-                  <div className="text-rose-400/90">{trendForecast.weekBear}</div>
-                  <div className="pt-2 border-t border-slate-800 text-sky-300">{trendForecast.action}</div>
+            {tab === "trend" && (
+              <section className="space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold">趋势预测 + 持仓动态监控</h2>
+                  <button
+                    onClick={async () => {
+                      setMonitorLoading(true);
+                      setMonitorError(null);
+                      try {
+                        const res = await fetch("/api/holdings-monitor", { cache: "no-store" });
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        setMonitorData(await res.json());
+                      } catch (e: any) {
+                        setMonitorError(e.message || "加载失败");
+                      } finally {
+                        setMonitorLoading(false);
+                      }
+                    }}
+                    disabled={monitorLoading}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${monitorLoading ? "animate-spin" : ""}`} /> 刷新监控
+                  </button>
+                </div>
+
+                {trendForecast && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 text-sm">
+                    <div>宏观当日：<strong>{trendForecast.today}</strong></div>
+                    <div className="text-slate-400">{trendForecast.weekBase}</div>
+                    <div className="text-emerald-400/90">{trendForecast.weekBull}</div>
+                    <div className="text-rose-400/90">{trendForecast.weekBear}</div>
+                    <div className="pt-2 border-t border-slate-800 text-sky-300">{trendForecast.action}</div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-slate-200">持仓监控：财报拐点 · 估值 · 共识 · IV</h3>
+                  <p className="text-xs text-slate-500">
+                    数据源：Yahoo 公开摘要 + 账户空头 Put IV（与上一历史快照对比）。
+                    {monitorData?.updatedAt && (
+                      <span className="ml-2">更新于 {new Date(monitorData.updatedAt).toLocaleString("zh-CN")}</span>
+                    )}
+                  </p>
+                  {monitorError && (
+                    <div className="bg-red-950/50 border border-red-800 text-red-200 rounded-xl px-4 py-3 text-sm">{monitorError}</div>
+                  )}
+                  {monitorLoading && !monitorData && (
+                    <div className="flex justify-center py-10 text-slate-400 gap-3">
+                      <RefreshCw className="w-5 h-5 animate-spin" /> 拉取持仓监控…
+                    </div>
+                  )}
+                  {(monitorData?.items || []).map((m: any) => {
+                    const earnColor =
+                      m.earningsFlag === "imminent"
+                        ? "text-rose-400"
+                        : m.earningsFlag === "soon"
+                          ? "text-amber-300"
+                          : "text-slate-400";
+                    const ivColor =
+                      m.ivFlag === "spike"
+                        ? "text-rose-400 font-semibold"
+                        : m.ivFlag === "elevated"
+                          ? "text-amber-300"
+                          : "text-slate-400";
+                    return (
+                      <div key={m.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-lg text-sky-300">{m.symbol}</span>
+                          {m.name && <span className="text-xs text-slate-500">{m.name}</span>}
+                          {m.price != null && (
+                            <span className="text-sm text-slate-300 ml-auto">
+                              ${Number(m.price).toFixed(2)}
+                              {m.changePct != null && (
+                                <span className={m.changePct >= 0 ? " text-emerald-400" : " text-red-400"}>
+                                  {" "}{m.changePct >= 0 ? "+" : ""}{Number(m.changePct).toFixed(2)}%
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-1.5 text-xs">
+                          <div className={earnColor}>
+                            财报拐点：{m.earningsDate || "未知"}
+                            {m.daysToEarnings != null && `（${m.daysToEarnings} 天）`}
+                            {m.epsTrendSummary && <span className="text-slate-500"> · {m.epsTrendSummary}</span>}
+                          </div>
+                          <div className="text-slate-400">估值：{m.peVsForwardNote || "—"}</div>
+                          <div className="text-slate-400">
+                            华尔街共识：{m.consensusNote || "—"}
+                            {m.numberOfAnalysts != null && ` · ${m.numberOfAnalysts} 家`}
+                          </div>
+                          <div className={ivColor}>
+                            IV：{m.iv != null ? `${(Number(m.iv) * 100).toFixed(0)}%` : "—"}
+                            {m.ivPrev != null && `（前次 ${(Number(m.ivPrev) * 100).toFixed(0)}%）`}
+                            {m.ivChangePctPts != null &&
+                              ` · 变动 ${m.ivChangePctPts >= 0 ? "+" : ""}${Number(m.ivChangePctPts).toFixed(0)}pt`}
+                            {m.ivSource && <span className="text-slate-600"> · {m.ivSource}</span>}
+                          </div>
+                        </div>
+                        {(m.alerts || []).length > 0 && (
+                          <div className="space-y-1 pt-1 border-t border-slate-800">
+                            {m.alerts.map((a: string, i: number) => (
+                              <div key={i} className="text-xs text-amber-200">⚠ {a}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {monitorData && (!monitorData.items || monitorData.items.length === 0) && !monitorLoading && (
+                    <div className="text-sm text-slate-500">无持仓标的可监控。</div>
+                  )}
                 </div>
               </section>
             )}
@@ -442,36 +511,23 @@ export default function Home() {
                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                   <table className="min-w-full text-xs">
                     <thead className="bg-slate-900 text-slate-400"><tr>
-                      {["类型","时间","标的","资产","动作","开平","方向","到期","行权价","数量","成交价","标的价","权利金","已实现","未实现","市值","NLV","现金","IV","Δ","趋势","备注","风险"].map((h) => (
+                      {["类型","时间","标的","动作","方向","行权价","已实现","未实现","NLV","备注"].map((h) => (
                         <th key={h} className="px-2 py-2 text-left whitespace-nowrap">{h}</th>
                       ))}
                     </tr></thead>
                     <tbody>
-                      {ledgerRows.slice(0, 200).map((r) => (
-                        <tr key={r.id} className="border-t border-slate-800 align-top">
-                          <td className="px-2 py-1.5 whitespace-nowrap">{r.recordType}</td>
-                          <td className="px-2 py-1.5 whitespace-nowrap">{r.datetime?.slice(0, 16)?.replace("T", " ")}</td>
+                      {ledgerRows.slice(0, 100).map((r) => (
+                        <tr key={r.id} className="border-t border-slate-800">
+                          <td className="px-2 py-1.5">{r.recordType}</td>
+                          <td className="px-2 py-1.5">{r.datetime?.slice(0, 16)?.replace("T", " ")}</td>
                           <td className="px-2 py-1.5 font-medium">{r.symbol}</td>
-                          <td className="px-2 py-1.5">{r.assetType}</td>
                           <td className="px-2 py-1.5">{r.action}</td>
-                          <td className="px-2 py-1.5">{r.openClose}</td>
                           <td className="px-2 py-1.5">{r.direction}</td>
-                          <td className="px-2 py-1.5">{r.expiry}</td>
-                          <td className="px-2 py-1.5">{r.strike != null ? r.strike : ""}</td>
-                          <td className="px-2 py-1.5">{r.qty != null ? r.qty : ""}</td>
-                          <td className="px-2 py-1.5">{fmt(r.fillPrice)}</td>
-                          <td className="px-2 py-1.5">{fmt(r.underlyingPrice)}</td>
-                          <td className="px-2 py-1.5">{fmt(r.optionPremium)}</td>
-                          <td className={`px-2 py-1.5 ${(r.realizedPnl ?? 0) > 0 ? "text-emerald-400" : (r.realizedPnl ?? 0) < 0 ? "text-red-400" : ""}`}>{fmt(r.realizedPnl, 0)}</td>
-                          <td className={`px-2 py-1.5 ${(r.unrealizedPnl ?? 0) > 0 ? "text-emerald-400" : (r.unrealizedPnl ?? 0) < 0 ? "text-red-400" : ""}`}>{fmt(r.unrealizedPnl, 0)}</td>
-                          <td className="px-2 py-1.5">{fmt(r.marketValue, 0)}</td>
+                          <td className="px-2 py-1.5">{r.strike ?? ""}</td>
+                          <td className="px-2 py-1.5">{fmt(r.realizedPnl, 0)}</td>
+                          <td className="px-2 py-1.5">{fmt(r.unrealizedPnl, 0)}</td>
                           <td className="px-2 py-1.5">{fmt(r.nlv, 0)}</td>
-                          <td className="px-2 py-1.5">{fmt(r.usdCash, 0)}</td>
-                          <td className="px-2 py-1.5">{fmtPct(r.iv)}</td>
-                          <td className="px-2 py-1.5">{r.delta != null ? r.delta.toFixed(2) : ""}</td>
-                          <td className="px-2 py-1.5">{r.marketTrend}</td>
-                          <td className="px-2 py-1.5 min-w-[200px] max-w-[360px] whitespace-normal break-words text-slate-300">{r.reason}</td>
-                          <td className="px-2 py-1.5 min-w-[160px] max-w-[280px] whitespace-normal break-words text-slate-400">{r.riskReview}</td>
+                          <td className="px-2 py-1.5 max-w-[240px] truncate text-slate-400">{r.reason}</td>
                         </tr>
                       ))}
                     </tbody>
