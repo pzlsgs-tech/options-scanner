@@ -55,6 +55,32 @@ export type IbkrHistoryEntry = {
 
 const RECENT: IbkrHistoryEntry[] = [
   {
+    id: "2026-11-04",
+    capturedAt: "2026-11-04T02:57:00.000Z",
+    source: "ibkr_live",
+    nlv: 187724.34,
+    cash: 142617.00,
+    cashPct: 75.97,
+    stockMv: 78438.85,
+    unrealizedPnl: -2215.06,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 158.54, unrealizedPnl: -2877.93, legPct: -0.222, delta: -0.99, iv: 0.45, spot: 381.92 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 103.45, unrealizedPnl: 441.37, legPct: 0.041, delta: -0.99, iv: 0.80, spot: 207.49 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 261.60, unrealizedPnl: -1870.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 203.09, unrealizedPnl: 1222.93 },
+      { symbol: "TTWO", qty: 10, avg: 192.04, mark: 193.89, unrealizedPnl: 18.53 },
+      { symbol: "VWRA", qty: 130, avg: 177.32, mark: 188.08, unrealizedPnl: 1398.87 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 75.78, unrealizedPnl: -5.51 },
+    ],
+    note: "AMAT/COHR 标的回升，单腿改善；链目标仍远；F&G~19 Extreme Fear",
+    brentPrice: 103.2,
+    fearGreedIndex: 19,
+    marketTrend: "震荡",
+  },
+  {
     id: "2026-11-03",
     capturedAt: "2026-11-03T02:56:00.000Z",
     source: "ibkr_live",
