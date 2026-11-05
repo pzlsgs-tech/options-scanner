@@ -55,6 +55,32 @@ export type IbkrHistoryEntry = {
 
 const RECENT: IbkrHistoryEntry[] = [
   {
+    id: "2026-11-05",
+    capturedAt: "2026-11-05T15:59:00.000Z",
+    source: "ibkr_live",
+    nlv: 176476.94,
+    cash: 142799.41,
+    cashPct: 80.92,
+    stockMv: 79142.72,
+    unrealizedPnl: -13197.39,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 212.70, unrealizedPnl: -8294.15, legPct: -0.639, delta: -0.999, iv: 1.00, spot: 327.49 },
+      { underlying: "COHR", strike: 310, expiry: "2026-11-20", entry: 107.87, mark: 146.26, unrealizedPnl: -3839.58, legPct: -0.356, delta: -1.0, iv: 1.10, spot: 163.81 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 279.44, unrealizedPnl: -86.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 183.86, unrealizedPnl: 453.73 },
+      { symbol: "TTWO", qty: 10, avg: 192.04, mark: 209.38, unrealizedPnl: 173.43 },
+      { symbol: "VWRA", qty: 130, avg: 177.32, mark: 185.38, unrealizedPnl: 1047.87 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 72.46, unrealizedPnl: -28.18 },
+    ],
+    note: "半导体大跌：AMAT/COHR 深ITM单腿浮亏扩大，链目标仍远；F&G~28 Fear；SPY/QQQ 明显Risk-Off",
+    brentPrice: 96.6,
+    fearGreedIndex: 28,
+    marketTrend: "下跌",
+  },
+  {
     id: "2026-11-04",
     capturedAt: "2026-11-04T15:59:00.000Z",
     source: "ibkr_live",
