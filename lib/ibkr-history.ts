@@ -55,6 +55,32 @@ export type IbkrHistoryEntry = {
 
 const RECENT: IbkrHistoryEntry[] = [
   {
+    id: "2026-11-09",
+    capturedAt: "2026-11-09T16:00:00.000Z",
+    source: "ibkr_live",
+    nlv: 189976.37,
+    cash: 103410.79,
+    cashPct: 54.43,
+    stockMv: 108758.15,
+    unrealizedPnl: -116.01,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 172.57, unrealizedPnl: -4281.55, legPct: -0.330, delta: -0.997, iv: 0.85, spot: 362.5 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "COHR", qty: 100, avg: 202.13, mark: 227.55, unrealizedPnl: 2542.00 },
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 280.19, unrealizedPnl: -11.04 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 179.77, unrealizedPnl: 290.33 },
+      { symbol: "TTWO", qty: 10, avg: 192.04, mark: 214.07, unrealizedPnl: 220.28 },
+      { symbol: "VWRA", qty: 130, avg: 177.32, mark: 187.92, unrealizedPnl: 1378.07 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 78.28, unrealizedPnl: 11.53 },
+    ],
+    note: "AMAT Put深ITM单腿浮亏改善；COHR股票大涨；现金约54%；F&G~31 Fear；市场Risk-On反弹",
+    brentPrice: 95.19,
+    fearGreedIndex: 31,
+    marketTrend: "上涨",
+  },
+  {
     id: "2026-11-06",
     capturedAt: "2026-11-06T15:59:00.000Z",
     source: "ibkr_live",
@@ -106,7 +132,7 @@ const RECENT: IbkrHistoryEntry[] = [
     fearGreedIndex: 28,
     marketTrend: "下跌",
   },
-  // ... rest of the array remains, but for brevity in this call we include up to recent ones; full file would copy all previous
+  // older entries preserved in archive and previous RECENT truncated for update; full history maintained via archive
 ];
 
 /** 新→旧：近期 + 归档（去重 by id） */
