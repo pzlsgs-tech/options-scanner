@@ -55,6 +55,32 @@ export type IbkrHistoryEntry = {
 
 const RECENT: IbkrHistoryEntry[] = [
   {
+    id: "2026-11-16",
+    capturedAt: "2026-11-16T16:00:00.000Z",
+    source: "ibkr_live",
+    nlv: 186018.58,
+    cash: 103429.75,
+    cashPct: 55.60,
+    stockMv: 106043.34,
+    unrealizedPnl: -5999.41,
+    shortPuts: [
+      { underlying: "AMAT", strike: 540, expiry: "2026-11-20", entry: 129.76, mark: 183.31, unrealizedPnl: -5355.40, legPct: -0.413, delta: -1.0, iv: 0.48, spot: 355.0 },
+    ],
+    coveredCalls: [],
+    stocks: [
+      { symbol: "COHR", qty: 100, avg: 202.13, mark: 206.44, unrealizedPnl: 430.50 },
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 276.08, unrealizedPnl: -422.42 },
+      { symbol: "NVDA", qty: 40, avg: 172.52, mark: 159.10, unrealizedPnl: -536.87 },
+      { symbol: "VWRA", qty: 130, avg: 177.32, mark: 186.18, unrealizedPnl: 1151.87 },
+      { symbol: "IBKR", qty: 6.83, avg: 76.59, mark: 78.89, unrealizedPnl: 15.77 },
+      { symbol: "SMERY", qty: 100, avg: 28.89, mark: 28.54, unrealizedPnl: -34.73 },
+    ],
+    note: "AMAT Put深ITM单腿浮亏稳定；无COHR Put；科技股回调；现金约55.6%；F&G~37 Fear；市场Risk-Off震荡；布伦特~94.5",
+    brentPrice: 94.5,
+    fearGreedIndex: 37,
+    marketTrend: "震荡",
+  },
+  {
     id: "2026-11-13",
     capturedAt: "2026-11-13T16:00:00.000Z",
     source: "ibkr_live",
