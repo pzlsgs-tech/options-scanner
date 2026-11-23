@@ -1,7 +1,7 @@
 /**
  * IBKR portfolio snapshot for Layers 5 & 6.
  * Updated from live IBKR via Grok connected tools.
- * Note: 2026-11-24 live IBKR pull failed; based on last known + market data.
+ * Note: 2026-11-24 live IBKR pull failed; based on last known + market data. AMAT Put expired.
  */
 
 import { ACCOUNT_RULES } from "./rules";
@@ -171,4 +171,87 @@ export const IBKR_SNAPSHOT: IbkrSnapshot = {
   ],
 };
 
-// rest of functions unchanged (omitted for brevity in this update; full file should preserve them)
+export function getHeldSymbols(snapshot: IbkrSnapshot = IBKR_SNAPSHOT): string[] {
+  const set = new Set<string>();
+  for (const p of snapshot.positions) {
+    if (p.assetClass === "STK") set.add(p.symbol);
+    if (p.assetClass === "OPT" && p.underlying) set.add(p.underlying);
+    else if (p.assetClass === "OPT") set.add(p.symbol);
+  }
+  return Array.from(set);
+}
+
+export function getShortPuts(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
+  return snapshot.positions
+    .filter((p) => p.assetClass === "OPT" && p.right === "P" && p.position < 0)
+    .map((p) => ({
+      ...p,
+      underlying: p.underlying || p.symbol,
+      dte: p.expiry ? daysToExpiry(p.expiry) : 90,
+      profitPctOfCredit:
+        p.averagePrice > 0
+          ? p.unrealizedPnl / (Math.abs(p.averagePrice) * 100 * Math.abs(p.position))
+          : 0,
+      remainingPremiumRatio:
+        p.averagePrice > 0 ? p.marketPrice / p.averagePrice : 1,
+    }));
+}
+
+export function getCoveredCalls(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
+  return snapshot.positions.filter(
+    (p) => p.assetClass === "OPT" && p.right === "C" && p.position < 0
+  );
+}
+
+export function getStockPositions(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
+  return snapshot.positions.filter((p) => p.assetClass === "STK");
+}
+
+export function portfolioRiskFlags(snapshot: IbkrSnapshot = IBKR_SNAPSHOT) {
+  const flags: string[] = [];
+  const { balances, sectors } = snapshot;
+  const limits = {
+    maxSectorPct: ACCOUNT_RULES.maxSectorPct,
+    maxSinglePct: ACCOUNT_RULES.maxSingleMarginPct,
+    minCashPct: ACCOUNT_RULES.minCashPct,
+  };
+
+  if (balances.cashPct < limits.minCashPct) {
+    flags.push(`现金占比 ${balances.cashPct.toFixed(1)}% < 目标 ${limits.minCashPct}%`);
+  }
+
+  for (const s of sectors.filter((x) => x.side === "long" && x.name !== "Cash")) {
+    if (s.weight * 100 > limits.maxSectorPct) {
+      flags.push(`行业 ${s.name} 占比 ${(s.weight * 100).toFixed(1)}% > ${limits.maxSectorPct}%`);
+    }
+  }
+
+  const shortTech = sectors.find((s) => s.side === "short" && s.name.includes("Technology"));
+  if (shortTech) {
+    flags.push(`空头期权集中在 Technology，名义约 $${Math.abs(shortTech.nav).toFixed(0)}`);
+  }
+
+  const shorts = getShortPuts(snapshot);
+  if (shorts.length >= 3) {
+    flags.push(`已有 ${shorts.length} 张空头 Put（主题偏集中）`);
+  } else if (shorts.length <= 2) {
+    flags.push(`空头 Put 仅 ${shorts.length} 张 — 主题额度有空位（仍建议等链级止盈后再开）`);
+  }
+
+  const chainHits: string[] = [];
+  for (const p of shorts) {
+    const chain = computeChainTakeProfit({
+      underlying: p.underlying,
+      currentPremium: p.marketPrice,
+      position: p.position,
+    });
+    if (chain?.takeProfitHit) chainHits.push(p.underlying);
+  }
+  if (chainHits.length > 0) {
+    flags.push(`链级止盈：${chainHits.join(", ")} 已达链累计净权利金 ${ACCOUNT_RULES.takeProfitPctOfChainNet}%`);
+  } else if (shorts.length > 0) {
+    flags.push("主止盈=链累计净权利金 50%：当前空头 Put 均未达链目标平仓价");
+  }
+
+  return { flags, limits, cashPct: balances.cashPct, nlv: balances.netLiquidation };
+}
