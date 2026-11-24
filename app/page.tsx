@@ -47,7 +47,7 @@ export default function Home() {
   const [ibkr, setIbkr] = useState<any>(null);
   const [playbook, setPlaybook] = useState<any>(null);
   const [history, setHistory] = useState<{ count: number; entries: any[]; ledger?: LedgerRow[] } | null>(null);
-  const [tab, setTab] = useState<TabId>("market");
+  const [tab, setTab] = useState<TabId>("portfolio");
   const [minScore, setMinScore] = useState(50);
   const [search, setSearch] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -146,6 +146,8 @@ export default function Home() {
   const brent = market?.brentPrice;
   const fgi = market?.fearGreedIndex;
   const fgiLabel = market?.fearGreedLabel || "—";
+  const riskFlags: string[] = ibkr?.riskFlags || [];
+  const cashPct = Number(ibkr?.balances?.cashPct ?? 0);
 
   const trendForecast = useMemo(() => {
     if (!market) return null;
@@ -158,13 +160,12 @@ export default function Home() {
         : "震荡";
     return {
       today,
-      weekBase: riskOff ? "基准：震荡偏弱" : "基准：震荡为主，按链 50% 与现金纪律执行",
-      weekBull: "乐观：可考虑合规下补 1 个 CSP",
-      weekBear: "悲观：优先保现金与接股意愿",
-      action: riskOff ? "本周：不新开；管理 AMAT/COHR 链进度" : "本周：可扫描下一期 1 个 CSP（核心池）",
+      action: riskOff || cashPct < 20
+        ? "本周：优先恢复现金缓冲；不新开 CSP"
+        : "本周：可扫描下一期 1 个 CSP（核心池）",
       riskOff,
     };
-  }, [market]);
+  }, [market, cashPct]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -176,14 +177,16 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Options Scanner Pro</h1>
-              <p className="text-xs text-slate-400">持有优先 · 链级50% · 完整历史可导出</p>
+              <p className="text-xs text-slate-400">IBKR 实盘唯一源 · 链级50% · 全 Tab 同步</p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400 flex-wrap">
-            {updatedAt && (
-              <span>
-                更新 {new Date(updatedAt).toLocaleString("zh-CN")}
-                {refreshing && <span className="ml-1 text-sky-400">刷新中…</span>}
+            {ibkr?.snapshotAt && (
+              <span className="text-xs">
+                快照 {new Date(ibkr.snapshotAt).toLocaleString("zh-CN")}
+                <span className={`ml-2 ${ibkr.source === "ibkr_live" ? "text-emerald-400" : "text-amber-400"}`}>
+                  {ibkr.source === "ibkr_live" ? "IBKR live" : "非实时"}
+                </span>
               </span>
             )}
             <button
@@ -227,32 +230,40 @@ export default function Home() {
           <>
             {tab === "market" && market && (
               <section className="space-y-5">
-                <h2 className="text-lg font-semibold">第一层：市场环境</h2>
+                <h2 className="text-lg font-semibold">1 市场环境</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className={`rounded-2xl border-2 p-6 ${(brent ?? 0) >= 100 ? "bg-orange-950/60 border-orange-500" : "bg-emerald-950/50 border-emerald-500"}`}>
-                    <div className="text-sm mb-1">布伦特原油 Brent</div>
+                    <div className="text-sm mb-1">布伦特原油</div>
                     <div className="text-5xl font-black text-orange-400">{brent != null ? `$${Number(brent).toFixed(2)}` : "—"}</div>
                   </div>
                   <div className={`rounded-2xl border-2 p-6 ${(fgi ?? 50) <= 44 ? "bg-rose-950/60 border-rose-400" : "bg-slate-900 border-slate-500"}`}>
-                    <div className="text-sm mb-1">Fear & Greed Index</div>
+                    <div className="text-sm mb-1">Fear & Greed</div>
                     <div className="text-5xl font-black">{fgi != null ? fgi : "—"}</div>
                     <div className="mt-2 text-xl font-bold">{fgiLabel}</div>
                   </div>
                 </div>
+                {topStrategy && (
+                  <div className="text-sm text-slate-400">策略偏向：<span className="text-sky-300">{topStrategy.name}</span> · {topStrategy.reason}</div>
+                )}
               </section>
             )}
 
             {tab === "scan" && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">选股 / 期权（五步纪律）</h2>
+                <h2 className="text-lg font-semibold">2 选股 / 期权</h2>
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-400">
+                  ①愿持有 → ②权利金补偿 → ③催化剂 → ④仓位 ≤10% NLV → ⑤后路。当前现金 {cashPct.toFixed(1)}% 时优先恢复缓冲再开仓。
+                </div>
                 <div className="flex gap-3">
                   <input type="number" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
                   <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索标的" className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm" />
                 </div>
                 {filtered.slice(0, 25).map((r) => (
-                  <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm">
-                    <span className="font-bold">{r.symbol}</span> <span className="text-sky-400">{r.aiScore}</span>
-                    {r.poolLabel && <span className="ml-2 text-xs text-slate-400">{r.poolLabel}</span>}
+                  <div key={r.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm flex flex-wrap gap-2 items-center">
+                    <span className="font-bold">{r.symbol}</span>
+                    <span className="text-sky-400">{r.aiScore}</span>
+                    {r.poolLabel && <span className="text-xs text-slate-400">{r.poolLabel}</span>}
+                    <span className="text-xs text-slate-500 flex-1">{r.recommendedAction}</span>
                   </div>
                 ))}
               </section>
@@ -260,30 +271,70 @@ export default function Home() {
 
             {tab === "portfolio" && ibkr && (
               <section className="space-y-4">
-                <h2 className="text-lg font-semibold">组合 · IBKR</h2>
+                <h2 className="text-lg font-semibold">3 组合 · IBKR 实盘</h2>
+                {riskFlags.length > 0 && (
+                  <div className="bg-amber-950/40 border border-amber-700 rounded-xl p-3 text-sm space-y-1">
+                    {riskFlags.map((f: string, i: number) => (
+                      <div key={i} className="text-amber-200">⚠ {f}</div>
+                    ))}
+                  </div>
+                )}
                 <div className="grid sm:grid-cols-4 gap-3">
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">NLV</div>
-                    <div className="text-xl font-bold">${ibkr.balances?.netLiquidation?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                    <div className="text-xl font-bold">${fmt(ibkr.balances?.netLiquidation, 0)}</div>
                   </div>
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                     <div className="text-xs text-slate-500">现金</div>
-                    <div className="text-xl font-bold">${ibkr.balances?.cashBalance?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                    <div className="text-xs text-emerald-400">{ibkr.balances?.cashPct?.toFixed(1)}%</div>
+                    <div className="text-xl font-bold">${fmt(ibkr.balances?.cashBalance, 0)}</div>
+                    <div className={`text-xs ${cashPct < 20 ? "text-rose-400" : "text-emerald-400"}`}>{cashPct.toFixed(1)}%</div>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="text-xs text-slate-500">股票市值</div>
+                    <div className="text-xl font-bold">${fmt(ibkr.balances?.stockMarketValue, 0)}</div>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                    <div className="text-xs text-slate-500">未实现</div>
+                    <div className={`text-xl font-bold ${(ibkr.balances?.unrealizedPnl ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      ${fmt(ibkr.balances?.unrealizedPnl, 0)}
+                    </div>
                   </div>
                 </div>
-                <h3 className="font-semibold text-slate-300">股票</h3>
+
+                <h3 className="font-semibold text-slate-300">股票 / ETF</h3>
                 {(ibkr.stocks || []).map((s: any) => (
-                  <div key={s.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm flex gap-3">
-                    <span className="font-bold">{s.symbol}</span>
+                  <div key={s.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm flex flex-wrap gap-x-4 gap-y-1">
+                    <span className="font-bold min-w-[64px]">{s.symbol}</span>
                     <span>{Number(s.qty).toFixed(s.qty % 1 ? 2 : 0)} 股</span>
-                    <span className={Number(s.pnl) >= 0 ? "text-emerald-400" : "text-red-400"}>${Number(s.pnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    <span>均价 {fmt(s.avg)}</span>
+                    <span>现价 {fmt(s.price)}</span>
+                    <span className={Number(s.pnl) >= 0 ? "text-emerald-400" : "text-red-400"}>未实现 ${fmt(s.pnl, 0)}</span>
                   </div>
                 ))}
+
                 <h3 className="font-semibold text-slate-300">空头 Put</h3>
+                {(ibkr.shortPuts || []).length === 0 && (
+                  <div className="text-sm text-slate-500">当前无空头 Put</div>
+                )}
                 {(ibkr.shortPuts || []).map((p: any) => (
-                  <div key={p.underlying} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm">
-                    {p.underlying} {p.strike}P · mark {Number(p.currentPremium).toFixed(2)}
+                  <div key={p.description || p.underlying} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm space-y-1">
+                    <div className="font-bold">{p.underlying} {p.strike}P · 到期 {p.expiry} · DTE {p.dte}</div>
+                    <div>入场 {fmt(p.entryPremium)} → mark {fmt(p.currentPremium)} · 单腿 {(Number(p.profitPctOfCredit) * 100).toFixed(1)}%</div>
+                    <div className={Number(p.unrealizedPnl) >= 0 ? "text-emerald-400" : "text-red-400"}>未实现 ${fmt(p.unrealizedPnl, 0)}</div>
+                    {p.spot != null && <div className="text-xs text-slate-500">标的现价 ~{fmt(p.spot)}</div>}
+                  </div>
+                ))}
+
+                <h3 className="font-semibold text-slate-300">备兑 / 空头 Call</h3>
+                {(ibkr.coveredCalls || []).length === 0 && (
+                  <div className="text-sm text-slate-500">当前无备兑 Call</div>
+                )}
+                {(ibkr.coveredCalls || []).map((c: any) => (
+                  <div key={c.description || `${c.underlying}-${c.strike}`} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm">
+                    <span className="font-bold">{c.underlying} {c.strike}C</span>
+                    <span className="ml-2">到期 {c.expiry}</span>
+                    <span className="ml-2">入场 {fmt(c.entryPremium)} → {fmt(c.currentPremium)}</span>
+                    <span className={`ml-2 ${Number(c.unrealizedPnl) >= 0 ? "text-emerald-400" : "text-red-400"}`}>${fmt(c.unrealizedPnl, 0)}</span>
                   </div>
                 ))}
               </section>
@@ -291,10 +342,26 @@ export default function Home() {
 
             {tab === "roll" && ibkr && (
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold">展期</h2>
+                <h2 className="text-lg font-semibold">4 展期 / 止盈</h2>
+                <p className="text-xs text-slate-500">主止盈 = 链累计净权利金 50%。未达链目标默认持有，不因单腿回撤 panic close。</p>
+                {(ibkr.shortPuts || []).length === 0 && (
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-slate-400">无空头 Put 需展期管理</div>
+                )}
                 {(ibkr.shortPuts || []).map((p: any) => (
-                  <div key={p.underlying} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm">
-                    {p.underlying}: {p.chain?.takeProfitHit ? "已达链级止盈" : "未达链 50%，默认持有"}
+                  <div key={p.underlying + String(p.strike)} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm space-y-1">
+                    <div className="font-bold">{p.underlying} {p.strike}P</div>
+                    <div>单腿 {(Number(p.profitPctOfCredit) * 100).toFixed(1)}% · mark {fmt(p.currentPremium)}</div>
+                    <div className="text-sky-300">
+                      {p.chain?.takeProfitHit || p.takeProfitHit
+                        ? "已达链级止盈 — 可评估平仓"
+                        : "未达链 50% — 默认持有 / 观察 Δ 与标的"}
+                    </div>
+                  </div>
+                ))}
+                {(ibkr.coveredCalls || []).map((c: any) => (
+                  <div key={`cc-${c.underlying}`} className="bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm">
+                    <span className="font-bold">{c.underlying} {c.strike}C 备兑</span>
+                    <span className="ml-2 text-slate-400">持有收租；接近实值再评估 roll 或接行权</span>
                   </div>
                 ))}
               </section>
@@ -330,10 +397,8 @@ export default function Home() {
                 {(monitorData?.items || []).map((m: any) => (
                   <div key={m.symbol} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs space-y-1">
                     <div className="font-bold text-sky-300 text-sm">{m.symbol}</div>
-                    <div>财报：{m.earningsDate || "—"} {m.daysToEarnings != null ? `（${m.daysToEarnings}天）` : ""}</div>
+                    <div>财报：{m.earningsDate || "—"}</div>
                     <div>估值：{m.peVsForwardNote || "—"}</div>
-                    <div>共识：{m.consensusNote || "—"}</div>
-                    <div>IV：{m.iv != null ? `${(Number(m.iv) * 100).toFixed(0)}%` : "—"}</div>
                     {(m.alerts || []).map((a: string, i: number) => (
                       <div key={i} className="text-amber-200">⚠ {a}</div>
                     ))}
@@ -345,60 +410,38 @@ export default function Home() {
             {tab === "history" && (
               <section className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold">历史账本（完整）</h2>
-                  <a
-                    href="/api/history-export"
-                    download="ibkr-history-full.csv"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm"
-                  >
+                  <h2 className="text-lg font-semibold">历史账本</h2>
+                  <a href="/api/history-export" download="ibkr-history-full.csv" className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-sm">
                     <Download className="w-4 h-4" /> 导出全部 CSV
                   </a>
                 </div>
-                <p className="text-xs text-slate-500">
-                  含 2026-08-09 起归档 + 近期每日快照。导出接口：/api/history-export
-                  {history?.count != null && ` · 当前账本行数约 ${history.count}`}
-                </p>
                 <div className="flex flex-wrap gap-2">
                   {(["全部", "成交", "每日持仓", "账户快照"] as const).map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setHistFilter(f)}
-                      className={`px-3 py-1 rounded-lg text-sm ${histFilter === f ? "bg-sky-600 text-white" : "bg-slate-800 text-slate-400"}`}
-                    >
-                      {f}
-                    </button>
+                    <button key={f} onClick={() => setHistFilter(f)} className={`px-3 py-1 rounded-lg text-sm ${histFilter === f ? "bg-sky-600 text-white" : "bg-slate-800 text-slate-400"}`}>{f}</button>
                   ))}
                 </div>
                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                   <table className="min-w-full text-xs">
                     <thead className="bg-slate-900 text-slate-400">
-                      <tr>
-                        {["类型", "时间", "标的", "动作", "方向", "行权价", "已实现", "未实现", "NLV", "备注"].map((h) => (
-                          <th key={h} className="px-2 py-2 text-left whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
+                      <tr>{["类型", "时间", "标的", "动作", "未实现", "NLV", "备注"].map((h) => (
+                        <th key={h} className="px-2 py-2 text-left">{h}</th>
+                      ))}</tr>
                     </thead>
                     <tbody>
-                      {ledgerRows.slice(0, 150).map((r) => (
+                      {ledgerRows.slice(0, 120).map((r) => (
                         <tr key={r.id} className="border-t border-slate-800">
                           <td className="px-2 py-1.5">{r.recordType}</td>
                           <td className="px-2 py-1.5">{r.datetime?.slice(0, 16)?.replace("T", " ")}</td>
                           <td className="px-2 py-1.5 font-medium">{r.symbol}</td>
                           <td className="px-2 py-1.5">{r.action}</td>
-                          <td className="px-2 py-1.5">{r.direction}</td>
-                          <td className="px-2 py-1.5">{r.strike ?? ""}</td>
-                          <td className="px-2 py-1.5">{fmt(r.realizedPnl, 0)}</td>
                           <td className="px-2 py-1.5">{fmt(r.unrealizedPnl, 0)}</td>
                           <td className="px-2 py-1.5">{fmt(r.nlv, 0)}</td>
-                          <td className="px-2 py-1.5 max-w-[220px] truncate text-slate-400">{r.reason}</td>
+                          <td className="px-2 py-1.5 max-w-[200px] truncate text-slate-400">{r.reason}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                {(!history || ledgerRows.length === 0) && (
-                  <div className="text-sm text-slate-500">暂无账本行；请点「导出全部 CSV」下载快照历史。</div>
-                )}
               </section>
             )}
 
