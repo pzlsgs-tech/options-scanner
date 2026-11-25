@@ -55,6 +55,53 @@ export type IbkrHistoryEntry = {
 
 const RECENT: IbkrHistoryEntry[] = [
   {
+    id: "2026-11-25",
+    capturedAt: "2026-11-25T00:07:00.000Z",
+    source: "ibkr_live",
+    nlv: 179105.29,
+    cash: 26936.43,
+    cashPct: 15.04,
+    stockMv: 153401.61,
+    unrealizedPnl: -13074.07,
+    shortPuts: [
+      {
+        underlying: "NVDA",
+        strike: 150,
+        expiry: "2026-12-24",
+        entry: 4.69,
+        mark: 9.83,
+        unrealizedPnl: -513.96,
+        legPct: -1.096,
+        delta: null,
+        iv: null,
+        spot: 152.49,
+      },
+    ],
+    coveredCalls: [
+      {
+        underlying: "COHR",
+        strike: 310,
+        expiry: "2026-12-24",
+        entry: 4.30,
+        mark: 0.92,
+        unrealizedPnl: 337.94,
+      },
+    ],
+    stocks: [
+      { symbol: "AMAT", qty: 100, avg: 410.24, mark: 322.75, unrealizedPnl: -8749.05 },
+      { symbol: "COHR", qty: 100, avg: 202.13, mark: 195.20, unrealizedPnl: -693.17 },
+      { symbol: "MCD", qty: 100, avg: 280.30, mark: 280.05, unrealizedPnl: -25.44 },
+      { symbol: "NVDA", qty: 60, avg: 160.83, mark: 152.49, unrealizedPnl: -500.66 },
+      { symbol: "VWRA", qty: 150, avg: 177.02, mark: 177.56, unrealizedPnl: 81.27 },
+      { symbol: "SMERY", qty: 100, avg: 28.89, mark: 26.28, unrealizedPnl: -260.73 },
+      { symbol: "IBKR", qty: 6.8302, avg: 76.59, mark: 75.40, unrealizedPnl: -8.10 },
+    ],
+    note: "IBKR实盘同步：AMAT/COHR 接货持股；NVDA 60股+150P；COHR 310C 备兑；现金仅15.0%为主要风险",
+    brentPrice: 89.0,
+    fearGreedIndex: 17,
+    marketTrend: "震荡",
+  },
+  {
     id: "2026-11-24",
     capturedAt: "2026-11-24T15:59:00.000Z",
     source: "ibkr_live",
