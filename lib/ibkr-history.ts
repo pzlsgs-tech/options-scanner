@@ -53,6 +53,49 @@ export type IbkrHistoryEntry = {
 
 export const IBKR_HISTORY: IbkrHistoryEntry[] = [
   {
+    id: "2026-11-27",
+    capturedAt: "2026-11-27T00:08:00.000Z",
+    source: "ibkr_live",
+    nlv: 179388.33,
+    cash: 26960.98,
+    cashPct: 15.03,
+    stockMv: 153790.42,
+    unrealizedPnl: -12969.64,
+    shortPuts: [
+      {
+        underlying: "NVDA",
+        strike: 150,
+        expiry: "2026-12-24",
+        entry: 4.691531,
+        mark: 12.2538004,
+        unrealizedPnl: -756.22694,
+        spot: 150.99,
+        legPct: -161.2,
+      },
+    ],
+    coveredCalls: [
+      {
+        underlying: "COHR",
+        strike: 310,
+        expiry: "2026-12-24",
+        entry: 4.299551,
+        mark: 0.716428,
+        unrealizedPnl: 358.3123,
+      },
+    ],
+    stocks: [
+      { symbol: "AMAT", qty: 100, avg: 410.240465, mark: 312.0, unrealizedPnl: -9824.05 },
+      { symbol: "COHR", qty: 100, avg: 202.134966, mark: 201.0, unrealizedPnl: -113.50 },
+      { symbol: "IBKR", qty: 6.8302, avg: 76.58633715, mark: 74.74, unrealizedPnl: -12.61 },
+      { symbol: "MCD", qty: 100, avg: 280.300363, mark: 283.5, unrealizedPnl: 319.96 },
+      { symbol: "NVDA", qty: 60, avg: 160.83434, mark: 150.99, unrealizedPnl: -590.66 },
+      { symbol: "SMERY", qty: 100, avg: 28.887306, mark: 25.78, unrealizedPnl: -310.73 },
+      { symbol: "VWRA", qty: 150, avg: 177.01818133, mark: 179.38, unrealizedPnl: 354.27 },
+    ],
+    note: "Updated live 2026-11-27: NLV ~179.4k SGD; cash ~15%; short NVDA 150P Dec24 deep ITM loss ~-756; covered COHR 310C deep OTM profit +358; AMAT still deep drawdown -9.8k",
+    marketTrend: "震荡",
+  },
+  {
     id: "2026-11-26",
     capturedAt: "2026-11-26T16:00:00.000Z",
     source: "ibkr_live",
